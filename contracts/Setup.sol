@@ -10,23 +10,25 @@ import "@chainlink/contracts/src/v0.8/interfaces/KeeperCompatibleInterface.sol";
 error Raffle__UpkeepNotNeeded(
     uint256 currentBalance,
     uint256 numPlayers,
-    uint256 raffleState
+    uint256 gameState
 );
-error Raffle__TransferFailed();
-error Raffle__SendMoreToEnterRaffle();
-error Raffle__RaffleNotOpen();
+error Lobby__TransferFailed();
+error Lobby__SendMoreToEnterLobby();
+error Lobby_LobbyNotOpen();
 
 /**@title A sample Raffle Contract
- * @author Patrick Collins
- * @notice This contract is for creating a sample raffle contract
- * @dev This implements the Chainlink VRF Version 2
+ * @author Mitchell Spencer
+ * @notice Cryptorisk setup contract.
+ * @dev Implements the Chainlink VRF V2
  */
-contract Raffle is VRFConsumerBaseV2, KeeperCompatibleInterface {
+
+contract Setup is VRFConsumerBaseV2, KeeperCompatibleInterface {
     /* Type declarations */
-    enum RaffleState {
+    enum LobbyState {
         OPEN,
-        CALCULATING
+        FULL
     }
+
     /* State variables */
     // Chainlink VRF Variables
     VRFCoordinatorV2Interface private immutable i_vrfCoordinator;
@@ -36,17 +38,17 @@ contract Raffle is VRFConsumerBaseV2, KeeperCompatibleInterface {
     uint16 private constant REQUEST_CONFIRMATIONS = 3;
     uint32 private constant NUM_WORDS = 1;
 
-    // Lottery Variables
+    // Setup Variables
     uint256 private immutable i_interval;
     uint256 private immutable i_entranceFee;
     uint256 private s_lastTimeStamp;
     address private s_recentWinner;
     address payable[] private s_players;
-    RaffleState private s_raffleState;
+    LobbyState private s_lobbyState;
 
     /* Events */
     event RequestedRaffleWinner(uint256 indexed requestId);
-    event RaffleEnter(address indexed player);
+    event PlayerJoinedLobby(address indexed player);
     event WinnerPicked(address indexed player);
 
     /* Functions */
@@ -63,24 +65,24 @@ contract Raffle is VRFConsumerBaseV2, KeeperCompatibleInterface {
         i_interval = interval;
         i_subscriptionId = subscriptionId;
         i_entranceFee = entranceFee;
-        s_raffleState = RaffleState.OPEN;
+        s_lobbyState = LobbyState.OPEN;
         s_lastTimeStamp = block.timestamp;
         i_callbackGasLimit = callbackGasLimit;
     }
 
-    function enterRaffle() public payable {
-        // require(msg.value >= i_entranceFee, "Not enough value sent");
-        // require(s_raffleState == RaffleState.OPEN, "Raffle is not open");
+    function enterLobby() public payable {
+        require(msg.value >= i_entranceFee, "Not enough value sent");
+        require(s_lobbyState == LobbyState.OPEN, "Lobby is full");
         if (msg.value < i_entranceFee) {
-            revert Raffle__SendMoreToEnterRaffle();
+            revert Lobby__SendMoreToEnterLobby();
         }
-        if (s_raffleState != RaffleState.OPEN) {
-            revert Raffle__RaffleNotOpen();
+        if (s_lobbyState != LobbyState.OPEN) {
+            revert Lobby_LobbyNotOpen();
         }
         s_players.push(payable(msg.sender));
         // Emit an event when we update a dynamic array or mapping
         // Named events with the function name reversed
-        emit RaffleEnter(msg.sender);
+        emit PlayerJoinedLobby(msg.sender);
     }
 
     /**
@@ -103,7 +105,7 @@ contract Raffle is VRFConsumerBaseV2, KeeperCompatibleInterface {
             bytes memory /* performData */
         )
     {
-        bool isOpen = RaffleState.OPEN == s_raffleState;
+        bool isOpen = LobbyState.OPEN == s_lobbyState;
         bool timePassed = ((block.timestamp - s_lastTimeStamp) > i_interval);
         bool hasPlayers = s_players.length > 0;
         bool hasBalance = address(this).balance > 0;
@@ -124,10 +126,10 @@ contract Raffle is VRFConsumerBaseV2, KeeperCompatibleInterface {
             revert Raffle__UpkeepNotNeeded(
                 address(this).balance,
                 s_players.length,
-                uint256(s_raffleState)
+                uint256(s_lobbyState)
             );
         }
-        s_raffleState = RaffleState.CALCULATING;
+        s_lobbyState = LobbyState.FULL;
         uint256 requestId = i_vrfCoordinator.requestRandomWords(
             i_gasLane,
             i_subscriptionId,
@@ -157,20 +159,20 @@ contract Raffle is VRFConsumerBaseV2, KeeperCompatibleInterface {
         address payable recentWinner = s_players[indexOfWinner];
         s_recentWinner = recentWinner;
         s_players = new address payable[](0);
-        s_raffleState = RaffleState.OPEN;
+        s_lobbyState = LobbyState.OPEN;
         s_lastTimeStamp = block.timestamp;
         (bool success, ) = recentWinner.call{value: address(this).balance}("");
         // require(success, "Transfer failed");
         if (!success) {
-            revert Raffle__TransferFailed();
+            revert Lobby__TransferFailed();
         }
         emit WinnerPicked(recentWinner);
     }
 
     /** Getter Functions */
 
-    function getRaffleState() public view returns (RaffleState) {
-        return s_raffleState;
+    function getGameState() public view returns (LobbyState) {
+        return s_lobbyState;
     }
 
     function getNumWords() public pure returns (uint256) {
