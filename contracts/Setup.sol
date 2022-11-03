@@ -22,11 +22,11 @@ error Lobby_LobbyNotOpen();
  * @dev Implements the Chainlink VRF V2
  */
 
-contract Setup is VRFConsumerBaseV2, KeeperCompatibleInterface {
+contract Setup is VRFConsumerBaseV2 {
     /* Type declarations */
     enum LobbyState {
         OPEN,
-        FULL
+        CLOSED
     }
 
     /* State variables */
@@ -47,9 +47,11 @@ contract Setup is VRFConsumerBaseV2, KeeperCompatibleInterface {
     LobbyState private s_lobbyState;
 
     /* Events */
-    event RequestedRaffleWinner(uint256 indexed requestId);
+    event RequestedRandomness(uint256 indexed requestId);
     event PlayerJoinedLobby(address indexed player);
     event WinnerPicked(address indexed player);
+    event GameStarting();
+    event ReceivedRandomWords();
 
     /* Functions */
     constructor(
@@ -79,57 +81,22 @@ contract Setup is VRFConsumerBaseV2, KeeperCompatibleInterface {
         if (s_lobbyState != LobbyState.OPEN) {
             revert Lobby_LobbyNotOpen();
         }
+        // Emit an event when we update an array
         s_players.push(payable(msg.sender));
-        // Emit an event when we update a dynamic array or mapping
-        // Named events with the function name reversed
         emit PlayerJoinedLobby(msg.sender);
-    }
-
-    /**
-     * @dev This is the function that the Chainlink Keeper nodes call
-     * they look for `upkeepNeeded` to return True.
-     * the following should be true for this to return true:
-     * 1. The time interval has passed between raffle runs.
-     * 2. The lottery is open.
-     * 3. The contract has ETH.
-     * 4. Implicity, your subscription is funded with LINK.
-     */
-    function checkUpkeep(
-        bytes memory /* checkData */
-    )
-        public
-        view
-        override
-        returns (
-            bool upkeepNeeded,
-            bytes memory /* performData */
-        )
-    {
-        bool isOpen = LobbyState.OPEN == s_lobbyState;
-        bool timePassed = ((block.timestamp - s_lastTimeStamp) > i_interval);
-        bool hasPlayers = s_players.length > 0;
-        bool hasBalance = address(this).balance > 0;
-        upkeepNeeded = (timePassed && isOpen && hasBalance && hasPlayers);
-        return (upkeepNeeded, "0x0"); // can we comment this out?
-    }
-
-    /**
-     * @dev Once `checkUpkeep` is returning `true`, this function is called
-     * and it kicks off a Chainlink VRF call to get a random winner.
-     */
-    function performUpkeep(
-        bytes calldata /* performData */
-    ) external override {
-        (bool upkeepNeeded, ) = checkUpkeep("");
-        // require(upkeepNeeded, "Upkeep not needed");
-        if (!upkeepNeeded) {
-            revert Raffle__UpkeepNotNeeded(
-                address(this).balance,
-                s_players.length,
-                uint256(s_lobbyState)
-            );
+        // If players is 4: start game setup
+        if (s_players.length == 4) {
+            s_lobbyState = LobbyState.CLOSED;
+            emit GameStarting();
+            requestRandomness();
         }
-        s_lobbyState = LobbyState.FULL;
+    }
+
+    function requestRandomness() private {
+        require(
+            s_lobbyState == LobbyState.CLOSED,
+            "Lobby is not full (this should be impossible)"
+        );
         uint256 requestId = i_vrfCoordinator.requestRandomWords(
             i_gasLane,
             i_subscriptionId,
@@ -137,36 +104,31 @@ contract Setup is VRFConsumerBaseV2, KeeperCompatibleInterface {
             i_callbackGasLimit,
             NUM_WORDS
         );
-        // Quiz... is this redundant?
-        emit RequestedRaffleWinner(requestId);
+        emit RequestedRandomness(requestId);
     }
 
     /**
      * @dev This is the function that Chainlink VRF node
      * calls to send the money to the random winner.
      */
+
     function fulfillRandomWords(
         uint256, /* requestId */
         uint256[] memory randomWords
     ) internal override {
-        // s_players size 10
-        // randomNumber 202
-        // 202 % 10 ? what's doesn't divide evenly into 202?
-        // 20 * 10 = 200
-        // 2
-        // 202 % 10 = 2
-        uint256 indexOfWinner = randomWords[0] % s_players.length;
-        address payable recentWinner = s_players[indexOfWinner];
-        s_recentWinner = recentWinner;
-        s_players = new address payable[](0);
-        s_lobbyState = LobbyState.OPEN;
-        s_lastTimeStamp = block.timestamp;
-        (bool success, ) = recentWinner.call{value: address(this).balance}("");
+        emit ReceivedRandomWords();
+        //uint256 indexOfWinner = randomWords[0] % s_players.length;
+        //address payable recentWinner = s_players[indexOfWinner];
+        //s_recentWinner = recentWinner;
+        //s_players = new address payable[](0);
+        //s_lobbyState = LobbyState.OPEN;
+        //s_lastTimeStamp = block.timestamp;
+        //(bool success, ) = recentWinner.call{value: address(this).balance}("");
         // require(success, "Transfer failed");
-        if (!success) {
-            revert Lobby__TransferFailed();
-        }
-        emit WinnerPicked(recentWinner);
+        //if (!success) {
+        //    revert Lobby__TransferFailed();
+        //}
+        //emit WinnerPicked(recentWinner);
     }
 
     /** Getter Functions */

@@ -1,9 +1,8 @@
 const { ethers, network } = require("hardhat");
 const fs = require("fs");
 
-const FRONT_END_ADDRESSES_FILE =
-    "../smartcontract-lottery-frontend/constants/contractAddresses.json";
-const FRONT_END_ABI_FILE = "../smartcontract-lottery-frontend/constants/abi.json";
+const FRONT_END_ADDRESSES_FILE = "../cryptorisk_frontend/constants/contractAddresses.json";
+const FRONT_END_ABI_FILE = "../cryptorisk_frontend/constants/abi.json";
 
 module.exports = async function () {
     if (process.env.UPDATE_FRONT_END) {
@@ -28,7 +27,7 @@ async function updateContractAddresses() {
 }
 
 async function updateAbi() {
-    const raffle = await ethers.getContract("Raffle");
+    const raffle = await ethers.getContract("Setup");
     fs.writeFileSync(FRONT_END_ABI_FILE, raffle.interface.format(ethers.utils.FormatTypes.json));
 }
 
