@@ -186,7 +186,7 @@ contract Setup is VRFConsumerBaseV2 {
         uint randomWordsLength = randomWords.length;
         uint256 player_assigned_territory;
         uint8 remaining_players = 4;
-        uint remaining_territory = 42;
+        // uint remaining_territory = 42;
         uint territory_cap = 11;
         uint8[4] memory territories_assigned = [0, 0, 11, 0];
         for (uint i = 0; i < randomWordsLength; i++) {
@@ -199,7 +199,7 @@ contract Setup is VRFConsumerBaseV2 {
                 remaining_players--;
             }
             if (remaining_players == 1) {
-                s_territories.push(player_assigned_territory, 0);
+                // s_territories.push(player_assigned_territory, 0);
             }
         }
     }
