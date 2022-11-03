@@ -182,24 +182,29 @@ contract Setup is VRFConsumerBaseV2 {
         //emit WinnerPicked(recentWinner);
     }
 
+    /**
+     * Function receives array of 42 random words which are then used to assign each territory (0-41) an owner (0-3).
+     * Mutates a globally declared array s_territories.
+     */
     function assignTerritory(uint256[] memory randomWords) private {
-        uint randomWordsLength = randomWords.length;
-        uint256 player_assigned_territory;
-        uint8 remaining_players = 4;
-        // uint remaining_territory = 42;
-        uint territory_cap = 11;
-        uint8[4] memory territories_assigned = [0, 0, 11, 0];
-        for (uint i = 0; i < randomWordsLength; i++) {
-            player_assigned_territory = randomWords[i] % remaining_players;
-            s_territories.push(Territory_Info(player_assigned_territory, 0));
-            territories_assigned[player_assigned_territory] + 1;
-            if (
-                territories_assigned[player_assigned_territory] == territory_cap
-            ) {
-                remaining_players--;
-            }
-            if (remaining_players == 1) {
-                // s_territories.push(player_assigned_territory, 0);
+        uint8[4] memory playerSelection = [0, 1, 2, 3]; // Eligible players to be assigned territory, each is popped until no players left to receive.
+        uint8[4] memory territoriesAssigned = [0, 0, 0, 0]; // Used to track if player receives enough territory.
+
+        uint8 territoryCap = 10; // Initial cap is 10, moves up to 11 after two players assigned 10.
+        uint8 remainingPlayers = 4; // Ticks down as players hit their territory cap
+        uint256 indexAssignedTerritory; // Index of playerSelection that contains a list of eligible players to receive territory.
+        uint8 playerAwarded; // Stores the player to be awarded territory, for pushing into the s_territories array.
+        for (uint i = 0; i < 42; i++) {
+            indexAssignedTerritory = randomWords[i] % remainingPlayers; // Calculates which index from playerSelection will receive the territory
+            playerAwarded = playerSelection[indexAssignedTerritory]; // Player to be awarded territory
+            s_territories.push(Territory_Info(playerAwarded, 0));
+            territoriesAssigned[playerAwarded]++;
+            if (territoriesAssigned[playerAwarded] == territoryCap) {
+                delete playerSelection[playerAwarded]; // Removes awarded player from the array upon hitting territory cap.
+                remainingPlayers--;
+                if (remainingPlayers == 2) {
+                    territoryCap = 11; // Moves up instead of down, to remove situation where the cap goes down and we have players already on the cap then receiving too much territory.
+                }
             }
         }
     }
