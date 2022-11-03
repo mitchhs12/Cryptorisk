@@ -4,7 +4,6 @@ pragma solidity ^0.8.7;
 
 import "@chainlink/contracts/src/v0.8/interfaces/VRFCoordinatorV2Interface.sol";
 import "@chainlink/contracts/src/v0.8/VRFConsumerBaseV2.sol";
-import "@chainlink/contracts/src/v0.8/interfaces/KeeperCompatibleInterface.sol";
 
 /* Errors */
 error Raffle__UpkeepNotNeeded(
@@ -29,6 +28,50 @@ contract Setup is VRFConsumerBaseV2 {
         CLOSED
     }
 
+    enum Territory {
+        Alaska,
+        NorthwestTerritory,
+        Greenland,
+        Quebec,
+        Ontario,
+        Alberta,
+        WesternUS,
+        EasternUS,
+        CentralAmerica,
+        Venezuela,
+        Peru,
+        Argentina,
+        Brazil,
+        Iceland,
+        GreatBritain,
+        WesternEurope,
+        SouthernEurope,
+        NorthernEurope,
+        Scandinavia,
+        Ukraine,
+        NorthAfrica,
+        Egypt,
+        EastAfrica,
+        Congo,
+        SouthAfrica,
+        Madagascar,
+        MiddleEast,
+        Afghanistan,
+        Ural,
+        Siberia,
+        Yakutsk,
+        Kamchatka,
+        Irkutsk,
+        Mongolia,
+        Japan,
+        China,
+        India,
+        Siam,
+        Indonesia,
+        NewGuinea,
+        WesternAustralia,
+        EasternAustralia
+    }
     /* State variables */
     // Chainlink VRF Variables
     VRFCoordinatorV2Interface private immutable i_vrfCoordinator;
@@ -36,7 +79,7 @@ contract Setup is VRFConsumerBaseV2 {
     bytes32 private immutable i_gasLane;
     uint32 private immutable i_callbackGasLimit;
     uint16 private constant REQUEST_CONFIRMATIONS = 3;
-    uint32 private constant NUM_WORDS = 1;
+    uint32 private constant NUM_WORDS = 42;
 
     // Setup Variables
     uint256 private immutable i_interval;
@@ -45,6 +88,13 @@ contract Setup is VRFConsumerBaseV2 {
     address private s_recentWinner;
     address payable[] private s_players;
     LobbyState private s_lobbyState;
+    Territory_Info[] private s_territories;
+
+    struct Territory_Info {
+        uint owner;
+        uint256 troops;
+    }
+    mapping(Territory => Territory_Info) private territory_map;
 
     /* Events */
     event RequestedRandomness(uint256 indexed requestId);
@@ -74,7 +124,7 @@ contract Setup is VRFConsumerBaseV2 {
 
     function enterLobby() public payable {
         require(msg.value >= i_entranceFee, "Not enough value sent");
-        require(s_lobbyState == LobbyState.OPEN, "Lobby is full");
+        require(s_lobbyState == LobbyState.OPEN, "Lobby is full"); // require or if statement?
         if (msg.value < i_entranceFee) {
             revert Lobby__SendMoreToEnterLobby();
         }
@@ -117,6 +167,7 @@ contract Setup is VRFConsumerBaseV2 {
         uint256[] memory randomWords
     ) internal override {
         emit ReceivedRandomWords();
+        assignTerritory(randomWords);
         //uint256 indexOfWinner = randomWords[0] % s_players.length;
         //address payable recentWinner = s_players[indexOfWinner];
         //s_recentWinner = recentWinner;
@@ -130,6 +181,30 @@ contract Setup is VRFConsumerBaseV2 {
         //}
         //emit WinnerPicked(recentWinner);
     }
+
+    function assignTerritory(uint256[] memory randomWords) private {
+        uint randomWordsLength = randomWords.length;
+        uint256 player_assigned_territory;
+        uint8 remaining_players = 4;
+        uint remaining_territory = 42;
+        uint territory_cap = 11;
+        uint8[4] memory territories_assigned = [0, 0, 11, 0];
+        for (uint i = 0; i < randomWordsLength; i++) {
+            player_assigned_territory = randomWords[i] % remaining_players;
+            s_territories.push(Territory_Info(player_assigned_territory, 0));
+            territories_assigned[player_assigned_territory] + 1;
+            if (
+                territories_assigned[player_assigned_territory] == territory_cap
+            ) {
+                remaining_players--;
+            }
+            if (remaining_players == 1) {
+                s_territories.push(player_assigned_territory, 0);
+            }
+        }
+    }
+
+    function assignTroops() private {}
 
     /** Getter Functions */
 

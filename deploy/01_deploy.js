@@ -23,13 +23,13 @@ module.exports = async function ({ getNamedAccounts, deployments }) {
     }
     const args = [
         vrfCoordinatorV2Address,
-        networkConfig[chainId]["raffleEntranceFee"],
+        networkConfig[chainId]["lobbyEntranceFee"],
         networkConfig[chainId]["gasLane"],
         subscriptionId,
         networkConfig[chainId]["callbackGasLimit"],
         networkConfig[chainId]["interval"],
     ];
-    const raffle = await deploy("Setup", {
+    const setup = await deploy("Setup", {
         from: deployer,
         args: args,
         log: true,
@@ -38,7 +38,7 @@ module.exports = async function ({ getNamedAccounts, deployments }) {
 
     if (!developmentChains.includes(network.name) && process.env.SNOWTRACE_API_KEY) {
         log("Verifying");
-        await verify(raffle.address, args);
+        await verify(setup.address, args);
     }
     log("___________");
 };
