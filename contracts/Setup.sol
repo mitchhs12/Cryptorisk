@@ -12,8 +12,6 @@ error Raffle__UpkeepNotNeeded(
     uint256 gameState
 );
 error Lobby__TransferFailed();
-error Lobby__SendMoreToEnterLobby();
-error Lobby_LobbyNotOpen();
 
 /**@title A sample Raffle Contract
  * @author Mitchell Spencer
@@ -26,6 +24,14 @@ contract Setup is VRFConsumerBaseV2 {
     enum LobbyState {
         OPEN,
         CLOSED
+    }
+    enum TerritoryState {
+        INCOMPLETE,
+        COMPLETE
+    }
+    enum SetupState {
+        INCOMPLETE,
+        COMPLETE
     }
 
     enum Territory {
@@ -79,22 +85,22 @@ contract Setup is VRFConsumerBaseV2 {
     bytes32 private immutable i_gasLane;
     uint32 private immutable i_callbackGasLimit;
     uint16 private constant REQUEST_CONFIRMATIONS = 3;
-    uint32 private constant NUM_WORDS = 42;
 
     // Setup Variables
-    uint256 private immutable i_interval;
     uint256 private immutable i_entranceFee;
     uint256 private s_lastTimeStamp;
     address private s_recentWinner;
     address payable[] private s_players;
     LobbyState private s_lobbyState;
+    TerritoryState private s_territoryState;
+    SetupState private s_setupState;
     Territory_Info[] private s_territories;
+    uint8[4] private territoriesAssigned = [0, 0, 0, 0]; // Used to track if player receives enough territory.
 
     struct Territory_Info {
         uint owner;
         uint256 troops;
     }
-    mapping(Territory => Territory_Info) private territory_map;
 
     /* Events */
     event RequestedRandomness(uint256 indexed requestId);
@@ -108,13 +114,11 @@ contract Setup is VRFConsumerBaseV2 {
         address vrfCoordinatorV2,
         uint64 subscriptionId,
         bytes32 gasLane, // keyHash
-        uint256 interval,
         uint256 entranceFee,
         uint32 callbackGasLimit
     ) VRFConsumerBaseV2(vrfCoordinatorV2) {
         i_vrfCoordinator = VRFCoordinatorV2Interface(vrfCoordinatorV2);
         i_gasLane = gasLane;
-        i_interval = interval;
         i_subscriptionId = subscriptionId;
         i_entranceFee = entranceFee;
         s_lobbyState = LobbyState.OPEN;
@@ -123,36 +127,25 @@ contract Setup is VRFConsumerBaseV2 {
     }
 
     function enterLobby() public payable {
-        require(msg.value >= i_entranceFee, "Not enough value sent");
+        require(msg.value >= i_entranceFee, "Send More to Enter Lobby");
         require(s_lobbyState == LobbyState.OPEN, "Lobby is full"); // require or if statement?
-        if (msg.value < i_entranceFee) {
-            revert Lobby__SendMoreToEnterLobby();
-        }
-        if (s_lobbyState != LobbyState.OPEN) {
-            revert Lobby_LobbyNotOpen();
-        }
         // Emit an event when we update an array
         s_players.push(payable(msg.sender));
         emit PlayerJoinedLobby(msg.sender);
-        // If players is 4: start game setup
         if (s_players.length == 4) {
             s_lobbyState = LobbyState.CLOSED;
             emit GameStarting();
-            requestRandomness();
+            requestRandomness(42);
         }
     }
 
-    function requestRandomness() private {
-        require(
-            s_lobbyState == LobbyState.CLOSED,
-            "Lobby is not full (this should be impossible)"
-        );
+    function requestRandomness(uint32 num_words) private {
         uint256 requestId = i_vrfCoordinator.requestRandomWords(
             i_gasLane,
             i_subscriptionId,
             REQUEST_CONFIRMATIONS,
             i_callbackGasLimit,
-            NUM_WORDS
+            num_words
         );
         emit RequestedRandomness(requestId);
     }
@@ -167,7 +160,11 @@ contract Setup is VRFConsumerBaseV2 {
         uint256[] memory randomWords
     ) internal override {
         emit ReceivedRandomWords();
-        assignTerritory(randomWords);
+        if (s_territoryState == TerritoryState.INCOMPLETE) {
+            assignTerritory(randomWords);
+        }
+        assignTroops(randomWords);
+
         //uint256 indexOfWinner = randomWords[0] % s_players.length;
         //address payable recentWinner = s_players[indexOfWinner];
         //s_recentWinner = recentWinner;
@@ -188,16 +185,14 @@ contract Setup is VRFConsumerBaseV2 {
      */
     function assignTerritory(uint256[] memory randomWords) private {
         uint8[4] memory playerSelection = [0, 1, 2, 3]; // Eligible players to be assigned territory, each is popped until no players left to receive.
-        uint8[4] memory territoriesAssigned = [0, 0, 0, 0]; // Used to track if player receives enough territory.
-
         uint8 territoryCap = 10; // Initial cap is 10, moves up to 11 after two players assigned 10.
         uint8 remainingPlayers = 4; // Ticks down as players hit their territory cap
         uint256 indexAssignedTerritory; // Index of playerSelection that contains a list of eligible players to receive territory.
         uint8 playerAwarded; // Stores the player to be awarded territory, for pushing into the s_territories array.
-        for (uint i = 0; i < 42; i++) {
+        for (uint i = 0; i < randomWords.length; i++) {
             indexAssignedTerritory = randomWords[i] % remainingPlayers; // Calculates which index from playerSelection will receive the territory
             playerAwarded = playerSelection[indexAssignedTerritory]; // Player to be awarded territory
-            s_territories.push(Territory_Info(playerAwarded, 0));
+            s_territories.push(Territory_Info(playerAwarded, 1));
             territoriesAssigned[playerAwarded]++;
             if (territoriesAssigned[playerAwarded] == territoryCap) {
                 delete playerSelection[playerAwarded]; // Removes awarded player from the array upon hitting territory cap.
@@ -207,18 +202,41 @@ contract Setup is VRFConsumerBaseV2 {
                 }
             }
         }
+        s_territoryState = TerritoryState.COMPLETE;
+        requestRandomness(78);
     }
 
-    function assignTroops() private {}
+    function assignTroops(uint256[] memory randomWords) private {
+        uint randomWordsIndex = 0;
+        // s_territories.length == 42
+        // playerTerritoryIndexes.length == 10 or 11
+        for (uint i = 0; i < 4; i++) {
+            uint[] memory playerTerritoryIndexes = new uint[](
+                territoriesAssigned[i]
+            ); // Initializes array of indexes for territories owned by player i
+            uint index = 0;
+            for (uint j = 0; j < s_territories.length; i++) {
+                if (s_territories[j].owner == i) {
+                    playerTerritoryIndexes[index++] = j;
+                }
+            }
+            for (uint j = 0; j < 30 - territoriesAssigned[i]; j++) {
+                uint territoryAssignedTroop = randomWords[randomWordsIndex++] %
+                    territoriesAssigned[i];
+                s_territories[playerTerritoryIndexes[territoryAssignedTroop]]
+                    .troops++;
+            }
+        }
+    }
 
     /** Getter Functions */
 
-    function getGameState() public view returns (LobbyState) {
+    function getLobbyState() public view returns (LobbyState) {
         return s_lobbyState;
     }
 
-    function getNumWords() public pure returns (uint256) {
-        return NUM_WORDS;
+    function getTerritoryState() public view returns (TerritoryState) {
+        return s_territoryState;
     }
 
     function getRequestConfirmations() public pure returns (uint256) {
@@ -237,15 +255,19 @@ contract Setup is VRFConsumerBaseV2 {
         return s_lastTimeStamp;
     }
 
-    function getInterval() public view returns (uint256) {
-        return i_interval;
-    }
-
     function getEntranceFee() public view returns (uint256) {
         return i_entranceFee;
     }
 
     function getNumberOfPlayers() public view returns (uint256) {
         return s_players.length;
+    }
+
+    function getTerritories(uint territoryId)
+        public
+        view
+        returns (Territory_Info memory)
+    {
+        return s_territories[territoryId];
     }
 }

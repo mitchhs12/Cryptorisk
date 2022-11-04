@@ -18,7 +18,6 @@ async function updateContractAddresses() {
     if (network.config.chainId.toString() in currentAddresses) {
         if (!currentAddresses[network.config.chainId.toString()].includes(raffle.address)) {
             currentAddresses[network.config.chainId.toString()].push(raffle.address);
-            console.log(currentAddresses[network.config.chainId.toString()]);
         }
     } else {
         currentAddresses[network.config.chainId.toString()] = [raffle.address];

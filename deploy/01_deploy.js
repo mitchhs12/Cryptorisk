@@ -16,6 +16,7 @@ module.exports = async function ({ getNamedAccounts, deployments }) {
         const transactionResponse = await vrfCoordinatorV2Mock.createSubscription();
         const transactionReceipt = await transactionResponse.wait(1);
         subscriptionId = transactionReceipt.events[0].args.subId;
+        // fund subscription (with the link token on a real network)
         await vrfCoordinatorV2Mock.fundSubscription(subscriptionId, VRF_SUB_FUND_AMOUNT);
     } else {
         vrfCoordinatorV2Address = networkConfig[chainId]["vrfCoordinatorV2"];
@@ -27,7 +28,6 @@ module.exports = async function ({ getNamedAccounts, deployments }) {
         networkConfig[chainId]["gasLane"],
         subscriptionId,
         networkConfig[chainId]["callbackGasLimit"],
-        networkConfig[chainId]["interval"],
     ];
     const setup = await deploy("Setup", {
         from: deployer,

@@ -1,30 +1,23 @@
-const { ethers } = require("hardhat");
+const { ethers, hardhatArguments } = require("hardhat");
 
 const networkConfig = {
-    4: {
-        name: "rinkeby",
-        vrfCoordinatorV2: "0x6168499c0cFfCaCD319c818142124B7A15E857ab",
-        lobbyEntranceFee: "100000000000000000", //0.1 ETH
-        gasLane: "0xd89b2bf150e3b9e13446986e571fb9cab24b13cea0a43ea20a6049a85cc807cc", //30 gwei
-        subscriptionId: "5603",
-        callbackGasLimit: "500000", //500,000 gas
-        interval: "30",
+    default: {
+        name: "hardhat",
     },
     5: {
         name: "goerli",
         vrfCoordinatorV2: "0x2Ca8E0C643bDe4C2E08ab1fA0da3401AdAD7734D",
         lobbyEntranceFee: "100000000000000000", //0.1 ETH
-        gasLane: "0xd89b2bf150e3b9e13446986e571fb9cab24b13cea0a43ea20a6049a85cc807cc", //30 gwei
-        subscriptionId: "5603", // this needs to be changed
+        gasLane: "0x79d3d8832d904592c0bf9818b621522c988bb8b0c05cdc3b15aea1b6e8db0c15", //30 gwei
+        subscriptionId: "6052", // this needs to be changed
         callbackGasLimit: "500000", //500,000 gas
-        interval: "30",
     },
     31337: {
-        name: "hardhat",
-        lobbyEntranceFee: "100000000000000000", //0.1 ETH
-        gasLane: "0xd89b2bf150e3b9e13446986e571fb9cab24b13cea0a43ea20a6049a85cc807cc", //30 gwei
+        name: "localhost",
+        subscriptionId: "588",
+        gasLane: "0xd89b2bf150e3b9e13446986e571fb9cab24b13cea0a43ea20a6049a85cc807cc", // 30 gwei
+        lobbyEntranceFee: ethers.utils.parseEther("0.1"), //0.1 ETH
         callbackGasLimit: "500000", //500,000 gas
-        interval: "30",
     },
     43113: {
         name: "fuji",
@@ -34,7 +27,6 @@ const networkConfig = {
         gasLane: "0x354d2f95da55398f44b7cff77da56283d9c6c829a4bdf1bbcaf2ad6a4d081f61",
         subscriptionId: "143",
         callbackGasLimit: "500000", //500,000 gas
-        interval: "30",
     },
 };
 
