@@ -101,17 +101,22 @@ const { BytesLike, parseEther } = require("ethers/lib/utils");
                   await expect(
                       vrfCoordinatorV2Mock.fulfillRandomWords(requestId, setup.address)
                   ).to.emit(setup, "ReceivedRandomWords");
-                  const randomWord0 = await setup.getRandomWordsArray(0);
-                  const randomWord41 = await setup.getRandomWordsArray(41);
-                  await expect(setup.getRandomWordsArray(42)).to.be.reverted;
+                  const randomWord0 = await setup.getRandomWordsArrayIndex(0);
+                  const randomWord41 = await setup.getRandomWordsArrayIndex(41);
+                  await expect(setup.getRandomWordsArrayIndex(42)).to.be.reverted;
                   console.log("First random word:", randomWord0.toString());
                   console.log("Last random word:", randomWord41.toString());
               });
           });
-          // describe("Testing Assign Territory", function () {
-          //     it("Distributes the territory properly", async function () {
-          //         await setup.testTerritoryAssignment();
-          //         const territory1 = await setup.getTerritories(0);
-          //     });
-          // });
+          describe("It assigns the territory correctly", function () {
+              it("Calculates and assigns the territory correctly", async function () {
+                  await player1_connection.enterLobby({ value: entranceFee });
+                  await player2_connection.enterLobby({ value: entranceFee });
+                  await player3_connection.enterLobby({ value: entranceFee });
+                  const tx = await player4_connection.enterLobby({ value: entranceFee });
+                  const receipt = await tx.wait(1);
+                  requestId = receipt.events[3].args.requestId;
+                  await vrfCoordinatorV2Mock.fulfillRandomWords(requestId, setup.address);
+              });
+          });
       });

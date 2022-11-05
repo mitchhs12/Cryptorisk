@@ -166,13 +166,13 @@ contract Setup is VRFConsumerBaseV2 {
         uint256, /* requestId */
         uint256[] memory randomWords
     ) internal override {
-        console.log("random words received!");
+        console.log("sol: randomWords received!");
         s_randomWordsArray = randomWords;
         emit ReceivedRandomWords();
-        // if (s_territoryState == TerritoryState.INCOMPLETE) {
-        //     assignTerritory(randomWords);
-        // }
-        // assignTroops(randomWords);
+        if (s_territoryState == TerritoryState.INCOMPLETE) {
+            assignTerritory(randomWords);
+        }
+        //assignTroops(randomWords);
     }
 
     /**
@@ -180,24 +180,26 @@ contract Setup is VRFConsumerBaseV2 {
      * Mutates a globally declared array s_territories.
      */
     function assignTerritory(uint256[] memory randomWords) private {
-        uint8[4] memory playerSelection = [0, 1, 2, 3]; // Eligible players to be assigned territory, each is popped until no players left to receive.
-        uint8 territoryCap = 10; // Initial cap is 10, moves up to 11 after two players assigned 10.
-        uint8 remainingPlayers = 4; // Ticks down as players hit their territory cap
-        uint256 indexAssignedTerritory; // Index of playerSelection that contains a list of eligible players to receive territory.
-        uint8 playerAwarded; // Stores the player to be awarded territory, for pushing into the s_territories array.
-        for (uint i = 0; i < randomWords.length; i++) {
-            indexAssignedTerritory = randomWords[i] % remainingPlayers; // Calculates which index from playerSelection will receive the territory
-            playerAwarded = playerSelection[indexAssignedTerritory]; // Player to be awarded territory
-            s_territories.push(Territory_Info(playerAwarded, 1));
-            territoriesAssigned[playerAwarded]++;
-            if (territoriesAssigned[playerAwarded] == territoryCap) {
-                delete playerSelection[playerAwarded]; // Removes awarded player from the array upon hitting territory cap.
-                remainingPlayers--;
-                if (remainingPlayers == 2) {
-                    territoryCap = 11; // Moves up instead of down, to remove situation where the cap goes down and we have players already on the cap then receiving too much territory.
-                }
-            }
-        }
+        randomWords;
+        console.log("Beginning territory assignment:");
+        // uint8[4] memory playerSelection = [0, 1, 2, 3]; // Eligible players to be assigned territory, each is popped until no players left to receive.
+        // uint8 territoryCap = 10; // Initial cap is 10, moves up to 11 after two players assigned 10.
+        // uint8 remainingPlayers = 4; // Ticks down as players hit their territory cap
+        // uint256 indexAssignedTerritory; // Index of playerSelection that contains a list of eligible players to receive territory.
+        // uint8 playerAwarded; // Stores the player to be awarded territory, for pushing into the s_territories array.
+        // for (uint i = 0; i < randomWords.length; i++) {
+        //     indexAssignedTerritory = randomWords[i] % remainingPlayers; // Calculates which index from playerSelection will receive the territory
+        //     playerAwarded = playerSelection[indexAssignedTerritory]; // Player to be awarded territory
+        //     s_territories.push(Territory_Info(playerAwarded, 1));
+        //     territoriesAssigned[playerAwarded]++;
+        //     if (territoriesAssigned[playerAwarded] == territoryCap) {
+        //         delete playerSelection[playerAwarded]; // Removes awarded player from the array upon hitting territory cap.
+        //         remainingPlayers--;
+        //         if (remainingPlayers == 2) {
+        //             territoryCap = 11; // Moves up instead of down, to remove situation where the cap goes down and we have players already on the cap then receiving too much territory.
+        //         }
+        //     }
+        // }
         s_territoryState = TerritoryState.COMPLETE;
         //requestRandomness(78);
     }
@@ -232,7 +234,15 @@ contract Setup is VRFConsumerBaseV2 {
 
     /** Getter Functions */
 
-    function getRandomWordsArray(uint index) public view returns (uint256) {
+    function getRandomWordsArray() public view returns (uint256[] memory) {
+        return s_randomWordsArray;
+    }
+
+    function getRandomWordsArrayIndex(uint256 index)
+        public
+        view
+        returns (uint256)
+    {
         return s_randomWordsArray[index];
     }
 
