@@ -3,7 +3,7 @@
 pragma solidity ^0.8.7;
 import "@chainlink/contracts/src/v0.8/interfaces/VRFCoordinatorV2Interface.sol";
 import "@chainlink/contracts/src/v0.8/VRFConsumerBaseV2.sol";
-
+import "hardhat/console.sol";
 /* Errors */
 error Raffle__UpkeepNotNeeded(
     uint256 currentBalance,
@@ -118,12 +118,12 @@ contract Setup is VRFConsumerBaseV2 {
         uint32 callbackGasLimit
     ) VRFConsumerBaseV2(vrfCoordinatorV2) {
         i_vrfCoordinator = VRFCoordinatorV2Interface(vrfCoordinatorV2);
-        i_gasLane = gasLane;
         i_subscriptionId = subscriptionId;
+        i_gasLane = gasLane;
         i_entranceFee = entranceFee;
+        i_callbackGasLimit = callbackGasLimit;
         s_lobbyState = LobbyState.OPEN;
         s_lastTimeStamp = block.timestamp;
-        i_callbackGasLimit = callbackGasLimit;
     }
 
     function enterLobby() public payable {
@@ -135,7 +135,7 @@ contract Setup is VRFConsumerBaseV2 {
         if (s_players.length == 4) {
             s_lobbyState = LobbyState.CLOSED;
             emit GameStarting();
-            // requestRandomness(42);
+            requestRandomness(42);
         }
     }
 
@@ -151,7 +151,7 @@ contract Setup is VRFConsumerBaseV2 {
     }
 
     function callRequestRandomness() external {
-        uint32 num_words = 35;
+        uint32 num_words = 78;
         requestRandomness(num_words);
     }
 
@@ -164,6 +164,7 @@ contract Setup is VRFConsumerBaseV2 {
         uint256, /* requestId */
         uint256[] memory randomWords
     ) internal override {
+        console.log("random words received!");
         s_randomWordsArray = randomWords;
         emit ReceivedRandomWords();
         // if (s_territoryState == TerritoryState.INCOMPLETE) {
@@ -233,6 +234,18 @@ contract Setup is VRFConsumerBaseV2 {
         return s_randomWordsArray[index];
     }
 
+    function getSubscriptionId() public view returns (uint64) {
+        return i_subscriptionId;
+    }
+
+    function getGasLane() public view returns (bytes32) {
+        return i_gasLane;
+    }
+
+    function getEntranceFee() public view returns (uint256) {
+        return i_entranceFee;
+    }
+
     function getCallbackGasLimit() public view returns (uint32) {
         return i_callbackGasLimit;
     }
@@ -259,10 +272,6 @@ contract Setup is VRFConsumerBaseV2 {
 
     function getLastTimeStamp() public view returns (uint256) {
         return s_lastTimeStamp;
-    }
-
-    function getEntranceFee() public view returns (uint256) {
-        return i_entranceFee;
     }
 
     function getNumberOfPlayers() public view returns (uint256) {

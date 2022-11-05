@@ -78,6 +78,20 @@ const { BytesLike, parseEther } = require("ethers/lib/utils");
                   await player4_connection.enterLobby({ value: entranceFee });
                   const txResponse = await setup.callRequestRandomness();
               });
+              it("Calls request randomness and emits an event", async function () {
+                  const txResponse = await setup.callRequestRandomness();
+                  const txReceipt = await txResponse.wait(1);
+                  const requestId = txReceipt.events[1].args.requestId;
+                  console.log("requestId:", requestId.toNumber());
+                  subId = await setup.getSubscriptionId();
+                  gasLane = await setup.getGasLane();
+                  entranceFee = await setup.getEntranceFee();
+                  cbGasLimit = await setup.getCallbackGasLimit();
+                  console.log("subId:", subId.toNumber());
+                  console.log("gasLane:", gasLane);
+                  console.log("entranceFee:", entranceFee.toString());
+                  console.log("cbGasLimit:", cbGasLimit);
+              });
               it("Returns the random words", async function () {
                   const txResponse = await setup.callRequestRandomness();
                   const txReceipt = await txResponse.wait(1);
@@ -97,7 +111,6 @@ const { BytesLike, parseEther } = require("ethers/lib/utils");
                   ).to.emit(setup, "ReceivedRandomWords");
                   const randomWord = await setup.getRandomWordsArray(0);
                   const randomWord2 = await setup.getRandomWordsArray(1);
-                  //const number = randomWord.toNumber() % 4;
                   console.log("NUMBER!:", randomWord.toString());
                   console.log("NUMBER!:", randomWord2.toString());
               });
