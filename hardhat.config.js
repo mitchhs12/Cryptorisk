@@ -19,16 +19,18 @@ const PRIVATE_KEY = process.env.PRIVATE_KEY;
 const MNEMONIC = process.env.MNEMONIC || "your mnemonic";
 const ETHERSCAN_API_KEY = process.env.ETHERSCAN_API_KEY || "Your etherscan API key";
 const POLYGONSCAN_API_KEY = process.env.POLYGONSCAN_API_KEY || "Your polygonscan API key";
-const REPORT_GAS = process.env.REPORT_GAS || false;
+const REPORT_GAS = process.env.REPORT_GAS;
 
 module.exports = {
     defaultNetwork: "hardhat",
     networks: {
         hardhat: {
             chainId: 31337,
+            allowUnlimitedContractSize: true,
         },
         localhost: {
             chainId: 31337,
+            allowUnlimitedContractSize: true,
         },
         // kovan: {
         //     url: KOVAN_RPC_URL,

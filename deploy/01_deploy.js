@@ -2,7 +2,7 @@ const { network, ethers } = require("hardhat");
 const { developmentChains, networkConfig } = require("../helper-hardhat-config");
 const { verify } = require("../utils/verify");
 
-const VRF_SUB_FUND_AMOUNT = ethers.utils.parseEther("30");
+const VRF_SUB_FUND_AMOUNT = ethers.utils.parseEther("100");
 
 module.exports = async function ({ getNamedAccounts, deployments }) {
     const { deploy, log } = deployments;
@@ -13,10 +13,11 @@ module.exports = async function ({ getNamedAccounts, deployments }) {
     if (developmentChains.includes(network.name)) {
         const vrfCoordinatorV2Mock = await ethers.getContract("VRFCoordinatorV2Mock");
         vrfCoordinatorV2Address = vrfCoordinatorV2Mock.address;
-        const transactionResponse = await vrfCoordinatorV2Mock.createSubscription();
-        const transactionReceipt = await transactionResponse.wait(1);
-        subscriptionId = transactionReceipt.events[0].args.subId;
+        const tx = await vrfCoordinatorV2Mock.createSubscription();
+        const txReceipt = await tx.wait(1);
+        subscriptionId = txReceipt.events[0].args.subId;
         // fund subscription (with the link token on a real network)
+
         await vrfCoordinatorV2Mock.fundSubscription(subscriptionId, VRF_SUB_FUND_AMOUNT);
     } else {
         vrfCoordinatorV2Address = networkConfig[chainId]["vrfCoordinatorV2"];
@@ -24,9 +25,9 @@ module.exports = async function ({ getNamedAccounts, deployments }) {
     }
     const args = [
         vrfCoordinatorV2Address,
-        networkConfig[chainId]["lobbyEntranceFee"],
-        networkConfig[chainId]["gasLane"],
         subscriptionId,
+        networkConfig[chainId]["gasLane"],
+        networkConfig[chainId]["lobbyEntranceFee"],
         networkConfig[chainId]["callbackGasLimit"],
     ];
     const setup = await deploy("Setup", {

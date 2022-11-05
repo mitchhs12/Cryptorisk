@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: MIT
 
 pragma solidity ^0.8.7;
-
 import "@chainlink/contracts/src/v0.8/interfaces/VRFCoordinatorV2Interface.sol";
 import "@chainlink/contracts/src/v0.8/VRFConsumerBaseV2.sol";
 
@@ -34,50 +33,50 @@ contract Setup is VRFConsumerBaseV2 {
         COMPLETE
     }
 
-    enum Territory {
-        Alaska,
-        NorthwestTerritory,
-        Greenland,
-        Quebec,
-        Ontario,
-        Alberta,
-        WesternUS,
-        EasternUS,
-        CentralAmerica,
-        Venezuela,
-        Peru,
-        Argentina,
-        Brazil,
-        Iceland,
-        GreatBritain,
-        WesternEurope,
-        SouthernEurope,
-        NorthernEurope,
-        Scandinavia,
-        Ukraine,
-        NorthAfrica,
-        Egypt,
-        EastAfrica,
-        Congo,
-        SouthAfrica,
-        Madagascar,
-        MiddleEast,
-        Afghanistan,
-        Ural,
-        Siberia,
-        Yakutsk,
-        Kamchatka,
-        Irkutsk,
-        Mongolia,
-        Japan,
-        China,
-        India,
-        Siam,
-        Indonesia,
-        NewGuinea,
-        WesternAustralia,
-        EasternAustralia
-    }
+    // enum Territory {
+    //     Alaska,
+    //     NorthwestTerritory,
+    //     Greenland,
+    //     Quebec,
+    //     Ontario,
+    //     Alberta,
+    //     WesternUS,
+    //     EasternUS,
+    //     CentralAmerica,
+    //     Venezuela,
+    //     Peru,
+    //     Argentina,
+    //     Brazil,
+    //     Iceland,
+    //     GreatBritain,
+    //     WesternEurope,
+    //     SouthernEurope,
+    //     NorthernEurope,
+    //     Scandinavia,
+    //     Ukraine,
+    //     NorthAfrica,
+    //     Egypt,
+    //     EastAfrica,
+    //     Congo,
+    //     SouthAfrica,
+    //     Madagascar,
+    //     MiddleEast,
+    //     Afghanistan,
+    //     Ural,
+    //     Siberia,
+    //     Yakutsk,
+    //     Kamchatka,
+    //     Irkutsk,
+    //     Mongolia,
+    //     Japan,
+    //     China,
+    //     India,
+    //     Siam,
+    //     Indonesia,
+    //     NewGuinea,
+    //     WesternAustralia,
+    //     EasternAustralia
+    // }
     /* State variables */
     // Chainlink VRF Variables
     VRFCoordinatorV2Interface private immutable i_vrfCoordinator;
@@ -87,6 +86,7 @@ contract Setup is VRFConsumerBaseV2 {
     uint16 private constant REQUEST_CONFIRMATIONS = 3;
 
     // Setup Variables
+    uint256[] s_randomWordsArray;
     uint256 private immutable i_entranceFee;
     uint256 private s_lastTimeStamp;
     address private s_recentWinner;
@@ -135,7 +135,7 @@ contract Setup is VRFConsumerBaseV2 {
         if (s_players.length == 4) {
             s_lobbyState = LobbyState.CLOSED;
             emit GameStarting();
-            requestRandomness(42);
+            // requestRandomness(42);
         }
     }
 
@@ -150,6 +150,11 @@ contract Setup is VRFConsumerBaseV2 {
         emit RequestedRandomness(requestId);
     }
 
+    function callRequestRandomness() external {
+        uint32 num_words = 35;
+        requestRandomness(num_words);
+    }
+
     /**
      * @dev This is the function that Chainlink VRF node
      * calls to send the money to the random winner.
@@ -159,24 +164,12 @@ contract Setup is VRFConsumerBaseV2 {
         uint256, /* requestId */
         uint256[] memory randomWords
     ) internal override {
+        s_randomWordsArray = randomWords;
         emit ReceivedRandomWords();
-        if (s_territoryState == TerritoryState.INCOMPLETE) {
-            assignTerritory(randomWords);
-        }
-        assignTroops(randomWords);
-
-        //uint256 indexOfWinner = randomWords[0] % s_players.length;
-        //address payable recentWinner = s_players[indexOfWinner];
-        //s_recentWinner = recentWinner;
-        //s_players = new address payable[](0);
-        //s_lobbyState = LobbyState.OPEN;
-        //s_lastTimeStamp = block.timestamp;
-        //(bool success, ) = recentWinner.call{value: address(this).balance}("");
-        // require(success, "Transfer failed");
-        //if (!success) {
-        //    revert Lobby__TransferFailed();
-        //}
-        //emit WinnerPicked(recentWinner);
+        // if (s_territoryState == TerritoryState.INCOMPLETE) {
+        //     assignTerritory(randomWords);
+        // }
+        // assignTroops(randomWords);
     }
 
     /**
@@ -203,7 +196,7 @@ contract Setup is VRFConsumerBaseV2 {
             }
         }
         s_territoryState = TerritoryState.COMPLETE;
-        requestRandomness(78);
+        //requestRandomness(78);
     }
 
     function assignTroops(uint256[] memory randomWords) private {
@@ -229,7 +222,20 @@ contract Setup is VRFConsumerBaseV2 {
         }
     }
 
+    /** Tester Functions */
+    function testTerritoryAssignment() external {
+        assignTerritory(s_randomWordsArray);
+    }
+
     /** Getter Functions */
+
+    function getRandomWordsArray(uint index) public view returns (uint256) {
+        return s_randomWordsArray[index];
+    }
+
+    function getCallbackGasLimit() public view returns (uint32) {
+        return i_callbackGasLimit;
+    }
 
     function getLobbyState() public view returns (LobbyState) {
         return s_lobbyState;
