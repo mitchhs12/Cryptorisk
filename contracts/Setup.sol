@@ -32,6 +32,10 @@ contract Setup is VRFConsumerBaseV2 {
         INCOMPLETE,
         COMPLETE
     }
+    enum VRFState {
+        OPEN,
+        CALLED
+    }
 
     // enum Territory {
     //     Alaska,
@@ -91,10 +95,12 @@ contract Setup is VRFConsumerBaseV2 {
     uint256 private s_lastTimeStamp;
     address private s_recentWinner;
     address payable[] private s_players;
+    VRFState private s_vrfState;
     LobbyState private s_lobbyState;
     TerritoryState private s_territoryState;
     SetupState private s_setupState;
     Territory_Info[] private s_territories;
+
     uint8[4] private territoriesAssigned = [0, 0, 0, 0]; // Used to track if player receives enough territory.
 
     struct Territory_Info {
@@ -124,6 +130,7 @@ contract Setup is VRFConsumerBaseV2 {
         i_callbackGasLimit = callbackGasLimit;
         s_lobbyState = LobbyState.OPEN;
         s_lastTimeStamp = block.timestamp;
+        s_vrfState = VRFState.OPEN;
     }
 
     function enterLobby() public payable {
@@ -148,11 +155,6 @@ contract Setup is VRFConsumerBaseV2 {
             num_words
         );
         emit RequestedRandomness(requestId);
-    }
-
-    function callRequestRandomness() external {
-        uint32 num_words = 78;
-        requestRandomness(num_words);
     }
 
     /**

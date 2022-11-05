@@ -71,48 +71,41 @@ const { BytesLike, parseEther } = require("ethers/lib/utils");
           });
 
           describe("Testing random word generator", function () {
-              it("Has 4 players connected and calls the vrf coordinator", async function () {
+              it("Has 4 players connected and it calls the VRF coordinator", async function () {
                   await player1_connection.enterLobby({ value: entranceFee });
                   await player2_connection.enterLobby({ value: entranceFee });
                   await player3_connection.enterLobby({ value: entranceFee });
-                  await player4_connection.enterLobby({ value: entranceFee });
-                  const txResponse = await setup.callRequestRandomness();
-              });
-              it("Calls request randomness and emits an event", async function () {
-                  const txResponse = await setup.callRequestRandomness();
-                  const txReceipt = await txResponse.wait(1);
-                  const requestId = txReceipt.events[1].args.requestId;
-                  console.log("requestId:", requestId.toNumber());
-                  subId = await setup.getSubscriptionId();
-                  gasLane = await setup.getGasLane();
-                  entranceFee = await setup.getEntranceFee();
-                  cbGasLimit = await setup.getCallbackGasLimit();
-                  console.log("subId:", subId.toNumber());
-                  console.log("gasLane:", gasLane);
-                  console.log("entranceFee:", entranceFee.toString());
-                  console.log("cbGasLimit:", cbGasLimit);
+                  const tx = await player4_connection.enterLobby({ value: entranceFee });
+                  const receipt = await tx.wait(1);
+                  requestId = receipt.events[3].args.requestId;
+                  assert.equal(requestId.toNumber(), 1);
               });
               it("Returns the random words", async function () {
-                  const txResponse = await setup.callRequestRandomness();
-                  const txReceipt = await txResponse.wait(1);
-                  const requestId = txReceipt.events[1].args.requestId;
-                  //gasLimit = await setup.getCallbackGasLimit();
-                  //console.log(gasLimit, requestId);
+                  await player1_connection.enterLobby({ value: entranceFee });
+                  await player2_connection.enterLobby({ value: entranceFee });
+                  await player3_connection.enterLobby({ value: entranceFee });
+                  const tx = await player4_connection.enterLobby({ value: entranceFee });
+                  const receipt = await tx.wait(1);
+                  requestId = receipt.events[3].args.requestId;
                   await expect(
                       vrfCoordinatorV2Mock.fulfillRandomWords(requestId, setup.address)
                   ).to.emit(setup, "ReceivedRandomWords");
               });
               it("Returns the correct amount of random words", async function () {
-                  const txResponse = await setup.callRequestRandomness();
-                  const txReceipt = await txResponse.wait(1);
-                  const requestId = txReceipt.events[1].args.requestId;
+                  await player1_connection.enterLobby({ value: entranceFee });
+                  await player2_connection.enterLobby({ value: entranceFee });
+                  await player3_connection.enterLobby({ value: entranceFee });
+                  const tx = await player4_connection.enterLobby({ value: entranceFee });
+                  const receipt = await tx.wait(1);
+                  requestId = receipt.events[3].args.requestId;
                   await expect(
                       vrfCoordinatorV2Mock.fulfillRandomWords(requestId, setup.address)
                   ).to.emit(setup, "ReceivedRandomWords");
-                  const randomWord = await setup.getRandomWordsArray(0);
-                  const randomWord2 = await setup.getRandomWordsArray(1);
-                  console.log("NUMBER!:", randomWord.toString());
-                  console.log("NUMBER!:", randomWord2.toString());
+                  const randomWord0 = await setup.getRandomWordsArray(0);
+                  const randomWord41 = await setup.getRandomWordsArray(41);
+                  await expect(setup.getRandomWordsArray(42)).to.be.reverted;
+                  console.log("First random word:", randomWord0.toString());
+                  console.log("Last random word:", randomWord41.toString());
               });
           });
           // describe("Testing Assign Territory", function () {
