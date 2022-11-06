@@ -4,17 +4,9 @@ pragma solidity ^0.8.7;
 import "@chainlink/contracts/src/v0.8/interfaces/VRFCoordinatorV2Interface.sol";
 import "@chainlink/contracts/src/v0.8/VRFConsumerBaseV2.sol";
 import "hardhat/console.sol";
-/* Errors */
-error Raffle__UpkeepNotNeeded(
-    uint256 currentBalance,
-    uint256 numPlayers,
-    uint256 gameState
-);
-error Lobby__TransferFailed();
 
-/**@title A sample Raffle Contract
- * @author Mitchell Spencer
- * @notice Cryptorisk setup contract.
+/**@title Cryptorisk Setup Contract
+ * @author Michael King and Mitchell Spencer
  * @dev Implements the Chainlink VRF V2
  */
 
@@ -28,13 +20,9 @@ contract Setup is VRFConsumerBaseV2 {
         INCOMPLETE,
         COMPLETE
     }
-    enum SetupState {
-        INCOMPLETE,
-        COMPLETE
-    }
-    enum VRFState {
-        OPEN,
-        CALLED
+    struct Territory_Info {
+        uint owner;
+        uint256 troops;
     }
 
     // enum Territory {
@@ -81,7 +69,8 @@ contract Setup is VRFConsumerBaseV2 {
     //     WesternAustralia,
     //     EasternAustralia
     // }
-    /* State variables */
+
+    /* Variables */
     // Chainlink VRF Variables
     VRFCoordinatorV2Interface private immutable i_vrfCoordinator;
     uint64 private immutable i_subscriptionId;
@@ -93,27 +82,19 @@ contract Setup is VRFConsumerBaseV2 {
     uint256[] s_randomWordsArray;
     uint256 private immutable i_entranceFee;
     uint256 private s_lastTimeStamp;
-    address private s_recentWinner;
     address payable[] private s_players;
-    VRFState private s_vrfState;
     LobbyState private s_lobbyState;
     TerritoryState private s_territoryState;
-    SetupState private s_setupState;
     Territory_Info[] private s_territories;
-
     uint8[4] private territoriesAssigned = [0, 0, 0, 0]; // Used to track if player receives enough territory.
 
-    struct Territory_Info {
-        uint owner;
-        uint256 troops;
-    }
-
     /* Events */
-    event RequestedRandomness(uint256 indexed requestId);
+    event RequestedTerritoryRandomness(uint256 indexed requestId);
+    event RequestedTroopRandomness(uint256 indexed requestId);
     event PlayerJoinedLobby(address indexed player);
-    event WinnerPicked(address indexed player);
     event GameStarting();
     event ReceivedRandomWords();
+    event GameSetupComplete();
 
     /* Functions */
     constructor(
@@ -129,8 +110,6 @@ contract Setup is VRFConsumerBaseV2 {
         i_entranceFee = entranceFee;
         i_callbackGasLimit = callbackGasLimit;
         s_lobbyState = LobbyState.OPEN;
-        s_lastTimeStamp = block.timestamp;
-        s_vrfState = VRFState.OPEN;
     }
 
     function enterLobby() public payable {
@@ -143,6 +122,8 @@ contract Setup is VRFConsumerBaseV2 {
             s_lobbyState = LobbyState.CLOSED;
             emit GameStarting();
             requestRandomness(42);
+            // s_randomWordsArray is initialized with 42 random words
+            // then calls assignTerritory
         }
     }
 
@@ -154,7 +135,11 @@ contract Setup is VRFConsumerBaseV2 {
             i_callbackGasLimit,
             num_words
         );
-        emit RequestedRandomness(requestId);
+        if (s_territoryState == TerritoryState.COMPLETE) {
+            emit RequestedTroopRandomness(requestId);
+        } else {
+            emit RequestedTerritoryRandomness(requestId);
+        }
     }
 
     /**
@@ -166,13 +151,13 @@ contract Setup is VRFConsumerBaseV2 {
         uint256, /* requestId */
         uint256[] memory randomWords
     ) internal override {
-        console.log("sol: randomWords received!");
         s_randomWordsArray = randomWords;
         emit ReceivedRandomWords();
         if (s_territoryState == TerritoryState.INCOMPLETE) {
             assignTerritory(randomWords);
+        } else {
+            assignTroops(randomWords);
         }
-        //assignTroops(randomWords);
     }
 
     /**
@@ -180,28 +165,26 @@ contract Setup is VRFConsumerBaseV2 {
      * Mutates a globally declared array s_territories.
      */
     function assignTerritory(uint256[] memory randomWords) private {
-        randomWords;
-        console.log("Beginning territory assignment:");
-        // uint8[4] memory playerSelection = [0, 1, 2, 3]; // Eligible players to be assigned territory, each is popped until no players left to receive.
-        // uint8 territoryCap = 10; // Initial cap is 10, moves up to 11 after two players assigned 10.
-        // uint8 remainingPlayers = 4; // Ticks down as players hit their territory cap
-        // uint256 indexAssignedTerritory; // Index of playerSelection that contains a list of eligible players to receive territory.
-        // uint8 playerAwarded; // Stores the player to be awarded territory, for pushing into the s_territories array.
-        // for (uint i = 0; i < randomWords.length; i++) {
-        //     indexAssignedTerritory = randomWords[i] % remainingPlayers; // Calculates which index from playerSelection will receive the territory
-        //     playerAwarded = playerSelection[indexAssignedTerritory]; // Player to be awarded territory
-        //     s_territories.push(Territory_Info(playerAwarded, 1));
-        //     territoriesAssigned[playerAwarded]++;
-        //     if (territoriesAssigned[playerAwarded] == territoryCap) {
-        //         delete playerSelection[playerAwarded]; // Removes awarded player from the array upon hitting territory cap.
-        //         remainingPlayers--;
-        //         if (remainingPlayers == 2) {
-        //             territoryCap = 11; // Moves up instead of down, to remove situation where the cap goes down and we have players already on the cap then receiving too much territory.
-        //         }
-        //     }
-        // }
+        uint8[4] memory playerSelection = [0, 1, 2, 3]; // Eligible players to be assigned territory, each is popped until no players left to receive.
+        uint8 territoryCap = 10; // Initial cap is 10, moves up to 11 after two players assigned 10.
+        uint8 remainingPlayers = 4; // Ticks down as players hit their territory cap
+        uint256 indexAssignedTerritory; // Index of playerSelection that contains a list of eligible players to receive territory.
+        uint8 playerAwarded; // Stores the player to be awarded territory, for pushing into the s_territories array.'
+        for (uint i = 0; i < randomWords.length; i++) {
+            indexAssignedTerritory = randomWords[i] % remainingPlayers; // Calculates which index from playerSelection will receive the territory
+            playerAwarded = playerSelection[indexAssignedTerritory]; // Player to be awarded territory
+            s_territories.push(Territory_Info(playerAwarded, 1));
+            territoriesAssigned[playerAwarded]++;
+            if (territoriesAssigned[playerAwarded] == territoryCap) {
+                delete playerSelection[playerAwarded]; // Removes awarded player from the array upon hitting territory cap.
+                remainingPlayers--;
+                if (remainingPlayers == 2) {
+                    territoryCap = 11; // Moves up instead of down, to remove situation where the cap goes down and we have players already on the cap then receiving too much territory.
+                }
+            }
+        }
         s_territoryState = TerritoryState.COMPLETE;
-        //requestRandomness(78);
+        requestRandomness(78);
     }
 
     function assignTroops(uint256[] memory randomWords) private {
@@ -213,7 +196,7 @@ contract Setup is VRFConsumerBaseV2 {
                 territoriesAssigned[i]
             ); // Initializes array of indexes for territories owned by player i
             uint index = 0;
-            for (uint j = 0; j < s_territories.length; i++) {
+            for (uint j = 0; j < s_territories.length; j++) {
                 if (s_territories[j].owner == i) {
                     playerTerritoryIndexes[index++] = j;
                 }
@@ -225,6 +208,7 @@ contract Setup is VRFConsumerBaseV2 {
                     .troops++;
             }
         }
+        emit GameSetupComplete();
     }
 
     /** Tester Functions */
@@ -274,16 +258,8 @@ contract Setup is VRFConsumerBaseV2 {
         return REQUEST_CONFIRMATIONS;
     }
 
-    function getRecentWinner() public view returns (address) {
-        return s_recentWinner;
-    }
-
     function getPlayer(uint256 index) public view returns (address) {
         return s_players[index];
-    }
-
-    function getLastTimeStamp() public view returns (uint256) {
-        return s_lastTimeStamp;
     }
 
     function getNumberOfPlayers() public view returns (uint256) {

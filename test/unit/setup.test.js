@@ -109,14 +109,63 @@ const { BytesLike, parseEther } = require("ethers/lib/utils");
               });
           });
           describe("It assigns the territory correctly", function () {
-              it("Calculates and assigns the territory correctly", async function () {
+              it("Calculates and assigns the territory and troops correctly", async function () {
                   await player1_connection.enterLobby({ value: entranceFee });
                   await player2_connection.enterLobby({ value: entranceFee });
                   await player3_connection.enterLobby({ value: entranceFee });
                   const tx = await player4_connection.enterLobby({ value: entranceFee });
                   const receipt = await tx.wait(1);
-                  requestId = receipt.events[3].args.requestId;
-                  await vrfCoordinatorV2Mock.fulfillRandomWords(requestId, setup.address);
+                  const firstId = receipt.events[3].args.requestId;
+                  const tx2 = await vrfCoordinatorV2Mock.fulfillRandomWords(firstId, setup.address);
+                  const receipt2 = await tx2.wait(1);
+                  const secondId = receipt2.events[1].args.requestId;
+                  const tx3 = await vrfCoordinatorV2Mock.fulfillRandomWords(
+                      secondId,
+                      setup.address
+                  );
+                  let territory;
+                  let territoriesOwnerBy0 = 0;
+                  let territoriesOwnerBy1 = 0;
+                  let territoriesOwnerBy2 = 0;
+                  let territoriesOwnerBy3 = 0;
+
+                  let troopsOwnedBy0 = 0;
+                  let troopsOwnedBy1 = 0;
+                  let troopsOwnedBy2 = 0;
+                  let troopsOwnedBy3 = 0;
+                  for (let i = 0; i < 42; i++) {
+                      territory = await setup.getTerritories(i);
+                      console.log(
+                          "Territory",
+                          i,
+                          "is owned by player",
+                          territory.owner.toNumber(),
+                          "and has",
+                          territory.troops.toNumber(),
+                          "troops."
+                      );
+                      if (territory.owner.toNumber() == 0) {
+                          territoriesOwnerBy0++;
+                          troopsOwnedBy0 = troopsOwnedBy0 + territory.troops.toNumber();
+                      } else if (territory.owner.toNumber() == 1) {
+                          territoriesOwnerBy1++;
+                          troopsOwnedBy1 = troopsOwnedBy1 + territory.troops.toNumber();
+                      } else if (territory.owner.toNumber() == 2) {
+                          territoriesOwnerBy2++;
+                          troopsOwnedBy2 = troopsOwnedBy2 + territory.troops.toNumber();
+                      } else if (territory.owner.toNumber() == 3) {
+                          territoriesOwnerBy3++;
+                          troopsOwnedBy3 = troopsOwnedBy3 + territory.troops.toNumber();
+                      }
+                  }
+                  console.log("Player 0 has", territoriesOwnerBy0, "territories.");
+                  console.log("Player 1 has", territoriesOwnerBy1, "territories.");
+                  console.log("Player 2 has", territoriesOwnerBy2, "territories.");
+                  console.log("Player 3 has", territoriesOwnerBy3, "territories.");
+                  assert.equal(troopsOwnedBy0, 30);
+                  assert.equal(troopsOwnedBy1, 30);
+                  assert.equal(troopsOwnedBy2, 30);
+                  assert.equal(troopsOwnedBy3, 30);
               });
           });
       });
