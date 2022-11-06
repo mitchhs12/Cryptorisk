@@ -1,21 +1,17 @@
 // SPDX-License-Identifier: MIT
-
 pragma solidity ^0.8.7;
 import "@chainlink/contracts/src/v0.8/interfaces/VRFCoordinatorV2Interface.sol";
 import "@chainlink/contracts/src/v0.8/VRFConsumerBaseV2.sol";
 import "hardhat/console.sol";
+import "./Deploy.sol";
 
-/**@title Cryptorisk Setup Contract
+/**@title Cryptorisk Main Contract
  * @author Michael King and Mitchell Spencer
  * @dev Implements the Chainlink VRF V2
  */
 
-contract Setup is VRFConsumerBaseV2 {
+contract Main is VRFConsumerBaseV2 {
     /* Type declarations */
-    enum LobbyState {
-        OPEN,
-        CLOSED
-    }
     enum TerritoryState {
         INCOMPLETE,
         COMPLETE
@@ -24,51 +20,10 @@ contract Setup is VRFConsumerBaseV2 {
         uint owner;
         uint256 troops;
     }
-
-    // enum Territory {
-    //     Alaska,
-    //     NorthwestTerritory,
-    //     Greenland,
-    //     Quebec,
-    //     Ontario,
-    //     Alberta,
-    //     WesternUS,
-    //     EasternUS,
-    //     CentralAmerica,
-    //     Venezuela,
-    //     Peru,
-    //     Argentina,
-    //     Brazil,
-    //     Iceland,
-    //     GreatBritain,
-    //     WesternEurope,
-    //     SouthernEurope,
-    //     NorthernEurope,
-    //     Scandinavia,
-    //     Ukraine,
-    //     NorthAfrica,
-    //     Egypt,
-    //     EastAfrica,
-    //     Congo,
-    //     SouthAfrica,
-    //     Madagascar,
-    //     MiddleEast,
-    //     Afghanistan,
-    //     Ural,
-    //     Siberia,
-    //     Yakutsk,
-    //     Kamchatka,
-    //     Irkutsk,
-    //     Mongolia,
-    //     Japan,
-    //     China,
-    //     India,
-    //     Siam,
-    //     Indonesia,
-    //     NewGuinea,
-    //     WesternAustralia,
-    //     EasternAustralia
-    // }
+    enum LobbyState {
+        OPEN,
+        CLOSED
+    }
 
     /* Variables */
     // Chainlink VRF Variables
@@ -81,34 +36,56 @@ contract Setup is VRFConsumerBaseV2 {
     // Setup Variables
     uint256[] s_randomWordsArray;
     uint256 private s_lastTimeStamp;
-    LobbyState private s_lobbyState;
     TerritoryState private s_territoryState;
-    Territory_Info[] private s_territories;
     uint8[4] private territoriesAssigned = [0, 0, 0, 0]; // Used to track if player receives enough territory.
+    Territory_Info[] internal s_territories;
+    uint256 private immutable i_entranceFee;
+    LobbyState private s_lobbyState;
+    address payable[] private s_players;
+    address public i_deploy;
+    address public i_attack;
+    address public i_fortify;
 
     /* Events */
     event RequestedTerritoryRandomness(uint256 indexed requestId);
     event RequestedTroopRandomness(uint256 indexed requestId);
-    event PlayerJoinedLobby(address indexed player);
-    event GameStarting();
     event ReceivedRandomWords();
     event GameSetupComplete();
+    event PlayerJoinedLobby(address indexed player);
+    event GameStarting();
 
     /* Functions */
     constructor(
         address vrfCoordinatorV2,
         uint64 subscriptionId,
         bytes32 gasLane, // keyHash
-        uint32 callbackGasLimit
+        uint32 callbackGasLimit,
+        uint256 entranceFee,
+        address deploy_address,
+        address attack_address,
+        address fortify_address
     ) VRFConsumerBaseV2(vrfCoordinatorV2) {
         i_vrfCoordinator = VRFCoordinatorV2Interface(vrfCoordinatorV2);
         i_subscriptionId = subscriptionId;
         i_gasLane = gasLane;
         i_callbackGasLimit = callbackGasLimit;
+        i_entranceFee = entranceFee;
+        s_lobbyState = LobbyState.OPEN;
+        i_deploy = deploy_address;
+        i_attack = attack_address;
+        i_fortify = fortify_address;
     }
 
-    function startSetup() internal {
-        requestRandomness(42);
+    function enterLobby() public payable {
+        require(msg.value >= i_entranceFee, "Send More to Enter Lobby");
+        require(s_lobbyState == LobbyState.OPEN, "Lobby is full"); // require or if statement?
+        s_players.push(payable(msg.sender));
+        emit PlayerJoinedLobby(msg.sender);
+        if (s_players.length == 4) {
+            s_lobbyState = LobbyState.CLOSED;
+            emit GameStarting();
+            requestRandomness(42);
+        }
     }
 
     function requestRandomness(uint32 num_words) private {
@@ -125,11 +102,6 @@ contract Setup is VRFConsumerBaseV2 {
             emit RequestedTerritoryRandomness(requestId);
         }
     }
-
-    /**
-     * @dev This is the function that Chainlink VRF node
-     * calls to send the money to the random winner.
-     */
 
     function fulfillRandomWords(
         uint256, /* requestId */
@@ -193,6 +165,12 @@ contract Setup is VRFConsumerBaseV2 {
             }
         }
         emit GameSetupComplete();
+        playGame(i_deploy);
+    }
+
+    function playGame(address deploy_address) private pure {
+        Deploy result = Deploy(deploy_address);
+        result;
     }
 
     /** Tester Functions */
@@ -226,16 +204,28 @@ contract Setup is VRFConsumerBaseV2 {
         return i_callbackGasLimit;
     }
 
-    function getLobbyState() public view returns (LobbyState) {
-        return s_lobbyState;
-    }
-
     function getTerritoryState() public view returns (TerritoryState) {
         return s_territoryState;
     }
 
     function getRequestConfirmations() public pure returns (uint256) {
         return REQUEST_CONFIRMATIONS;
+    }
+
+    function getPlayer(uint256 index) public view returns (address) {
+        return s_players[index];
+    }
+
+    function getNumberOfPlayers() public view returns (uint256) {
+        return s_players.length;
+    }
+
+    function getEntranceFee() public view returns (uint256) {
+        return i_entranceFee;
+    }
+
+    function getLobbyState() public view returns (LobbyState) {
+        return s_lobbyState;
     }
 
     function getTerritories(uint territoryId)

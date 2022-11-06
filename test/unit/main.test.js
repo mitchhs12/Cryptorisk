@@ -5,8 +5,8 @@ const { BytesLike, parseEther } = require("ethers/lib/utils");
 
 !developmentChains.includes(network.name)
     ? describe.skip
-    : describe("Setup Unit Tests", async function () {
-          let setup, vrfCoordinatorV2Mock, entranceFee, deployer;
+    : describe("Main Unit Tests", async function () {
+          let main, vrfCoordinatorV2Mock, entranceFee, deployer;
 
           beforeEach(async () => {
               accounts = await ethers.getSigners();
@@ -16,26 +16,26 @@ const { BytesLike, parseEther } = require("ethers/lib/utils");
               player3 = accounts[3];
               player4 = accounts[4];
               await deployments.fixture(["all"]);
-              setup = await ethers.getContract("Setup");
-              player1_connection = setup.connect(player1);
-              player2_connection = setup.connect(player2);
-              player3_connection = setup.connect(player3);
-              player4_connection = setup.connect(player4);
+              main = await ethers.getContract("Main");
+              player1_connection = main.connect(player1);
+              player2_connection = main.connect(player2);
+              player3_connection = main.connect(player3);
+              player4_connection = main.connect(player4);
               vrfCoordinatorV2Mock = await ethers.getContract("VRFCoordinatorV2Mock", deployer);
               console.log(vrfCoordinatorV2Mock.address);
-              entranceFee = await setup.getEntranceFee();
+              entranceFee = await main.getEntranceFee();
           });
 
           describe("constructor", function () {
               it("initialises the lobby correctly", async function () {
                   // ideally we make our tests have just one assert per 'it'
-                  const lobbyState = await setup.getLobbyState();
+                  const lobbyState = await main.getLobbyState();
                   assert.equal(lobbyState.toString(), "0");
               });
           });
           describe("enterLobby", function () {
               it("reverts when you don't pay enough", async function () {
-                  await expect(setup.enterLobby()).to.be.revertedWith("Send More to Enter Lobby");
+                  await expect(main.enterLobby()).to.be.revertedWith("Send More to Enter Lobby");
               });
               it("records player1 when they enter", async () => {
                   await player1_connection.enterLobby({ value: entranceFee });
@@ -51,12 +51,12 @@ const { BytesLike, parseEther } = require("ethers/lib/utils");
                   await player1_connection.enterLobby({ value: entranceFee });
                   await player2_connection.enterLobby({ value: entranceFee });
                   await player3_connection.enterLobby({ value: entranceFee });
-                  const numberOfPlayers = await setup.getNumberOfPlayers();
+                  const numberOfPlayers = await main.getNumberOfPlayers();
                   assert.equal(numberOfPlayers.toString(), "3");
               });
               it("emits event on enter", async function () {
-                  await expect(setup.enterLobby({ value: entranceFee })).to.emit(
-                      setup,
+                  await expect(main.enterLobby({ value: entranceFee })).to.emit(
+                      main,
                       "PlayerJoinedLobby"
                   );
               });
@@ -65,7 +65,7 @@ const { BytesLike, parseEther } = require("ethers/lib/utils");
                   await player2_connection.enterLobby({ value: entranceFee });
                   await player3_connection.enterLobby({ value: entranceFee });
                   await player4_connection.enterLobby({ value: entranceFee });
-                  const lobbyState = await setup.getLobbyState();
+                  const lobbyState = await main.getLobbyState();
                   assert.equal(lobbyState.toString(), "1");
               });
           });
@@ -88,8 +88,8 @@ const { BytesLike, parseEther } = require("ethers/lib/utils");
                   const receipt = await tx.wait(1);
                   requestId = receipt.events[3].args.requestId;
                   await expect(
-                      vrfCoordinatorV2Mock.fulfillRandomWords(requestId, setup.address)
-                  ).to.emit(setup, "ReceivedRandomWords");
+                      vrfCoordinatorV2Mock.fulfillRandomWords(requestId, main.address)
+                  ).to.emit(main, "ReceivedRandomWords");
               });
               it("Returns the correct amount of random words", async function () {
                   await player1_connection.enterLobby({ value: entranceFee });
@@ -99,11 +99,11 @@ const { BytesLike, parseEther } = require("ethers/lib/utils");
                   const receipt = await tx.wait(1);
                   requestId = receipt.events[3].args.requestId;
                   await expect(
-                      vrfCoordinatorV2Mock.fulfillRandomWords(requestId, setup.address)
-                  ).to.emit(setup, "ReceivedRandomWords");
-                  const randomWord0 = await setup.getRandomWordsArrayIndex(0);
-                  const randomWord41 = await setup.getRandomWordsArrayIndex(41);
-                  await expect(setup.getRandomWordsArrayIndex(42)).to.be.reverted;
+                      vrfCoordinatorV2Mock.fulfillRandomWords(requestId, main.address)
+                  ).to.emit(main, "ReceivedRandomWords");
+                  const randomWord0 = await main.getRandomWordsArrayIndex(0);
+                  const randomWord41 = await main.getRandomWordsArrayIndex(41);
+                  await expect(main.getRandomWordsArrayIndex(42)).to.be.reverted;
                   console.log("First random word:", randomWord0.toString());
                   console.log("Last random word:", randomWord41.toString());
               });
@@ -116,13 +116,10 @@ const { BytesLike, parseEther } = require("ethers/lib/utils");
                   const tx = await player4_connection.enterLobby({ value: entranceFee });
                   const receipt = await tx.wait(1);
                   const firstId = receipt.events[3].args.requestId;
-                  const tx2 = await vrfCoordinatorV2Mock.fulfillRandomWords(firstId, setup.address);
+                  const tx2 = await vrfCoordinatorV2Mock.fulfillRandomWords(firstId, main.address);
                   const receipt2 = await tx2.wait(1);
                   const secondId = receipt2.events[1].args.requestId;
-                  const tx3 = await vrfCoordinatorV2Mock.fulfillRandomWords(
-                      secondId,
-                      setup.address
-                  );
+                  const tx3 = await vrfCoordinatorV2Mock.fulfillRandomWords(secondId, main.address);
                   let territory;
                   let territoriesOwnerBy0 = 0;
                   let territoriesOwnerBy1 = 0;
@@ -134,7 +131,7 @@ const { BytesLike, parseEther } = require("ethers/lib/utils");
                   let troopsOwnedBy2 = 0;
                   let troopsOwnedBy3 = 0;
                   for (let i = 0; i < 42; i++) {
-                      territory = await setup.getTerritories(i);
+                      territory = await main.getTerritories(i);
                       console.log(
                           "Territory",
                           i,

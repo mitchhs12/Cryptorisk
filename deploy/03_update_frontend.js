@@ -13,21 +13,21 @@ module.exports = async function () {
 };
 
 async function updateContractAddresses() {
-    const raffle = await ethers.getContract("Setup");
+    const main = await ethers.getContract("Main");
     const currentAddresses = JSON.parse(fs.readFileSync(FRONT_END_ADDRESSES_FILE, "utf8"));
     if (network.config.chainId.toString() in currentAddresses) {
-        if (!currentAddresses[network.config.chainId.toString()].includes(raffle.address)) {
-            currentAddresses[network.config.chainId.toString()].push(raffle.address);
+        if (!currentAddresses[network.config.chainId.toString()].includes(main.address)) {
+            currentAddresses[network.config.chainId.toString()].push(main.address);
         }
     } else {
-        currentAddresses[network.config.chainId.toString()] = [raffle.address];
+        currentAddresses[network.config.chainId.toString()] = [main.address];
     }
     fs.writeFileSync(FRONT_END_ADDRESSES_FILE, JSON.stringify(currentAddresses));
 }
 
 async function updateAbi() {
-    const raffle = await ethers.getContract("Setup");
-    fs.writeFileSync(FRONT_END_ABI_FILE, raffle.interface.format(ethers.utils.FormatTypes.json));
+    const main = await ethers.getContract("Main");
+    fs.writeFileSync(FRONT_END_ABI_FILE, main.interface.format(ethers.utils.FormatTypes.json));
 }
 
 module.exports.tags = ["all", "frontend"];

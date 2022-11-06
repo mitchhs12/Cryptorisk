@@ -16,38 +16,44 @@ module.exports = async function ({ getNamedAccounts, deployments }) {
         const tx = await vrfCoordinatorV2Mock.createSubscription();
         const txReceipt = await tx.wait(1);
         subscriptionId = txReceipt.events[0].args.subId;
-        // fund subscription (with the link token on a real network)
-
         await vrfCoordinatorV2Mock.fundSubscription(subscriptionId, VRF_SUB_FUND_AMOUNT);
+        const deploy = await ethers.getContract("Deploy");
+        const attack = await ethers.getContract("Attack");
+        const fortify = await ethers.getContract("Fortify");
+        deployAddress = deploy.address;
+        attackAddress = attack.address;
+        fortifyAddress = fortify.address;
     } else {
         vrfCoordinatorV2Address = networkConfig[chainId]["vrfCoordinatorV2"];
         subscriptionId = networkConfig[chainId]["subscriptionId"];
+        deployAddress = networkConfig[chainId]["deploy"];
+        attackAddress = networkConfig[chainId]["attack"];
+        fortifyAddress = networkConfig[chainId]["fortify"];
     }
-    const setupArgs = [
+    const mainArgs = [
         vrfCoordinatorV2Address,
         subscriptionId,
         networkConfig[chainId]["gasLane"],
         networkConfig[chainId]["callbackGasLimit"],
+        networkConfig[chainId]["lobbyEntranceFee"],
+        deployAddress,
+        attackAddress,
+        fortifyAddress,
     ];
-    const setup = await deploy("Setup", {
+    const main = await deploy("Main", {
         from: deployer,
-        args: setupArgs,
+        args: mainArgs,
         log: true,
         waitConfirmations: network.config.blockConfirmations || 1,
     });
-    const cryptorisk = await deploy("Cryptorisk", {
-        from: deployer,
-        args: [networkConfig[chainId]["lobbyEntranceFee"]],
-        log: true,
-        waitConfirmations: network.config.blockConfirmations || 1,
-    });
+    log("Main Deployed!");
+    log("----------");
 
     if (!developmentChains.includes(network.name) && process.env.SNOWTRACE_API_KEY) {
         log("Verifying");
-        await verify(setup.address, args);
-        await verify(cryptorisk.address, args);
+        await verify(main.address, mainArgs);
     }
     log("___________");
 };
 
-module.exports.tags = ["all", "setup"];
+module.exports.tags = ["all", "main", "cryptorisk"];
