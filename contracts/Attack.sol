@@ -2,12 +2,20 @@
 pragma solidity ^0.8.7;
 
 import "hardhat/console.sol";
+import "./Main.sol";
 
 contract Attack {
-    function attack() public pure returns (uint256) {
-        uint a = 1;
-        uint b = 2;
-        uint result = a + b;
+    event Attacking();
+
+    function attack(
+        address current_player,
+        address payable[] calldata players_array,
+        Main.Territory_Info[] calldata current_game
+    ) public returns (Main.Territory_Info[] calldata result) {
+        emit Attacking();
+        current_player = current_player;
+        players_array = players_array;
+        result = current_game;
         return result;
     }
 }

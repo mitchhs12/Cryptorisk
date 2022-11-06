@@ -4,6 +4,8 @@ import "@chainlink/contracts/src/v0.8/interfaces/VRFCoordinatorV2Interface.sol";
 import "@chainlink/contracts/src/v0.8/VRFConsumerBaseV2.sol";
 import "hardhat/console.sol";
 import "./Deploy.sol";
+import "./Attack.sol";
+import "./Fortify.sol";
 
 /**@title Cryptorisk Main Contract
  * @author Michael King and Mitchell Spencer
@@ -16,13 +18,22 @@ contract Main is VRFConsumerBaseV2 {
         INCOMPLETE,
         COMPLETE
     }
+    enum LobbyState {
+        OPEN,
+        CLOSED
+    }
+    enum GameStage {
+        DEPLOY,
+        ATTACK,
+        FORTIFY
+    }
     struct Territory_Info {
         uint owner;
         uint256 troops;
     }
-    enum LobbyState {
-        OPEN,
-        CLOSED
+    struct Test_struct {
+        uint q;
+        uint x;
     }
 
     /* Variables */
@@ -34,17 +45,18 @@ contract Main is VRFConsumerBaseV2 {
     uint16 private constant REQUEST_CONFIRMATIONS = 3;
 
     // Setup Variables
-    uint256[] s_randomWordsArray;
-    uint256 private s_lastTimeStamp;
-    TerritoryState private s_territoryState;
-    uint8[4] private territoriesAssigned = [0, 0, 0, 0]; // Used to track if player receives enough territory.
-    Territory_Info[] internal s_territories;
     uint256 private immutable i_entranceFee;
+    address private immutable deploy_address;
+    address private immutable attack_address;
+    address private immutable fortify_address;
+
+    uint8[4] private territoriesAssigned = [0, 0, 0, 0]; // Used to track if player receives enough territory.
+    uint256[] s_randomWordsArray;
+    Territory_Info[] private s_territories;
+    TerritoryState private s_territoryState;
     LobbyState private s_lobbyState;
     address payable[] private s_players;
-    address public i_deploy;
-    address public i_attack;
-    address public i_fortify;
+    address private current_player;
 
     /* Events */
     event RequestedTerritoryRandomness(uint256 indexed requestId);
@@ -54,16 +66,15 @@ contract Main is VRFConsumerBaseV2 {
     event PlayerJoinedLobby(address indexed player);
     event GameStarting();
 
-    /* Functions */
     constructor(
         address vrfCoordinatorV2,
         uint64 subscriptionId,
         bytes32 gasLane, // keyHash
         uint32 callbackGasLimit,
         uint256 entranceFee,
-        address deploy_address,
-        address attack_address,
-        address fortify_address
+        address deploy,
+        address attack,
+        address fortify
     ) VRFConsumerBaseV2(vrfCoordinatorV2) {
         i_vrfCoordinator = VRFCoordinatorV2Interface(vrfCoordinatorV2);
         i_subscriptionId = subscriptionId;
@@ -71,10 +82,17 @@ contract Main is VRFConsumerBaseV2 {
         i_callbackGasLimit = callbackGasLimit;
         i_entranceFee = entranceFee;
         s_lobbyState = LobbyState.OPEN;
-        i_deploy = deploy_address;
-        i_attack = attack_address;
-        i_fortify = fortify_address;
+        deploy_address = deploy;
+        attack_address = attack;
+        fortify_address = fortify;
     }
+
+    modifier onlyPlayer() {
+        require(msg.sender == current_player);
+        _;
+    }
+
+    /* Functions */
 
     function enterLobby() public payable {
         require(msg.value >= i_entranceFee, "Send More to Enter Lobby");
@@ -165,12 +183,37 @@ contract Main is VRFConsumerBaseV2 {
             }
         }
         emit GameSetupComplete();
-        playGame(i_deploy);
+        current_player = s_players[0];
     }
 
-    function playGame(address deploy_address) private pure {
-        Deploy result = Deploy(deploy_address);
-        result;
+    function callDeploy() public onlyPlayer {
+        Deploy deploy_contract = Deploy(deploy_address);
+
+        s_territories = deploy_contract.deploy(
+            current_player,
+            s_players,
+            s_territories
+        );
+    }
+
+    function callAttack() public onlyPlayer {
+        Attack attack_contract = Attack(attack_address);
+
+        s_territories = attack_contract.attack(
+            current_player,
+            s_players,
+            s_territories
+        );
+    }
+
+    function callFortify() public onlyPlayer {
+        Fortify fortify_contract = Fortify(fortify_address);
+
+        s_territories = fortify_contract.fortify(
+            current_player,
+            s_players,
+            s_territories
+        );
     }
 
     /** Tester Functions */
