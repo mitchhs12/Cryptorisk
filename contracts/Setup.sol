@@ -80,9 +80,7 @@ contract Setup is VRFConsumerBaseV2 {
 
     // Setup Variables
     uint256[] s_randomWordsArray;
-    uint256 private immutable i_entranceFee;
     uint256 private s_lastTimeStamp;
-    address payable[] private s_players;
     LobbyState private s_lobbyState;
     TerritoryState private s_territoryState;
     Territory_Info[] private s_territories;
@@ -101,30 +99,16 @@ contract Setup is VRFConsumerBaseV2 {
         address vrfCoordinatorV2,
         uint64 subscriptionId,
         bytes32 gasLane, // keyHash
-        uint256 entranceFee,
         uint32 callbackGasLimit
     ) VRFConsumerBaseV2(vrfCoordinatorV2) {
         i_vrfCoordinator = VRFCoordinatorV2Interface(vrfCoordinatorV2);
         i_subscriptionId = subscriptionId;
         i_gasLane = gasLane;
-        i_entranceFee = entranceFee;
         i_callbackGasLimit = callbackGasLimit;
-        s_lobbyState = LobbyState.OPEN;
     }
 
-    function enterLobby() public payable {
-        require(msg.value >= i_entranceFee, "Send More to Enter Lobby");
-        require(s_lobbyState == LobbyState.OPEN, "Lobby is full"); // require or if statement?
-        // Emit an event when we update an array
-        s_players.push(payable(msg.sender));
-        emit PlayerJoinedLobby(msg.sender);
-        if (s_players.length == 4) {
-            s_lobbyState = LobbyState.CLOSED;
-            emit GameStarting();
-            requestRandomness(42);
-            // s_randomWordsArray is initialized with 42 random words
-            // then calls assignTerritory
-        }
+    function startSetup() internal {
+        requestRandomness(42);
     }
 
     function requestRandomness(uint32 num_words) private {
@@ -238,10 +222,6 @@ contract Setup is VRFConsumerBaseV2 {
         return i_gasLane;
     }
 
-    function getEntranceFee() public view returns (uint256) {
-        return i_entranceFee;
-    }
-
     function getCallbackGasLimit() public view returns (uint32) {
         return i_callbackGasLimit;
     }
@@ -258,19 +238,15 @@ contract Setup is VRFConsumerBaseV2 {
         return REQUEST_CONFIRMATIONS;
     }
 
-    function getPlayer(uint256 index) public view returns (address) {
-        return s_players[index];
-    }
-
-    function getNumberOfPlayers() public view returns (uint256) {
-        return s_players.length;
-    }
-
     function getTerritories(uint territoryId)
         public
         view
         returns (Territory_Info memory)
     {
         return s_territories[territoryId];
+    }
+
+    function getAllTerritories() public view returns (Territory_Info[] memory) {
+        return s_territories;
     }
 }

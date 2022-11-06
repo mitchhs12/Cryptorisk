@@ -23,16 +23,21 @@ module.exports = async function ({ getNamedAccounts, deployments }) {
         vrfCoordinatorV2Address = networkConfig[chainId]["vrfCoordinatorV2"];
         subscriptionId = networkConfig[chainId]["subscriptionId"];
     }
-    const args = [
+    const setupArgs = [
         vrfCoordinatorV2Address,
         subscriptionId,
         networkConfig[chainId]["gasLane"],
-        networkConfig[chainId]["lobbyEntranceFee"],
         networkConfig[chainId]["callbackGasLimit"],
     ];
     const setup = await deploy("Setup", {
         from: deployer,
-        args: args,
+        args: setupArgs,
+        log: true,
+        waitConfirmations: network.config.blockConfirmations || 1,
+    });
+    const cryptorisk = await deploy("Cryptorisk", {
+        from: deployer,
+        args: [networkConfig[chainId]["lobbyEntranceFee"]],
         log: true,
         waitConfirmations: network.config.blockConfirmations || 1,
     });
@@ -40,6 +45,7 @@ module.exports = async function ({ getNamedAccounts, deployments }) {
     if (!developmentChains.includes(network.name) && process.env.SNOWTRACE_API_KEY) {
         log("Verifying");
         await verify(setup.address, args);
+        await verify(cryptorisk.address, args);
     }
     log("___________");
 };
