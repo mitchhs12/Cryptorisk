@@ -53,12 +53,10 @@ contract Controls is IControls, VRFConsumerBaseV2 {
 
     function attack_control() external onlyMain {
         emit Attacking();
-        console.log("Attacking!");
     }
 
     function fortify_control() external onlyMain {
         emit Fortifying();
-        console.log("Fortifying!");
     }
 
     function requestRandomness(uint32 num_words) private {

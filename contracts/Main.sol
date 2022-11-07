@@ -216,6 +216,9 @@ contract Main is VRFConsumerBaseV2 {
         );
         IControls(controls_address).fortify_control();
         s_gameState = GameState.DEPLOY;
+        if (player_turn == s_players[s_players.length - 1]) {
+            player_turn = s_players[0];
+        }
     }
 
     /** Getter Functions */
