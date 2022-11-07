@@ -42,15 +42,25 @@ const { BytesLike, parseEther } = require("ethers/lib/utils");
                   assert.equal(turn, player1.address);
               });
               it("Only player 1 can only play", async function () {
-                  await expect(player1_connection.deploy()).to.emit(controls, "Deploying");
                   await expect(player2_connection.deploy()).to.be.reverted;
                   await expect(player3_connection.deploy()).to.be.reverted;
                   await expect(player4_connection.deploy()).to.be.reverted;
+                  await expect(player1_connection.deploy()).to.emit(controls, "Deploying");
               });
               it("Player 1 can only deploy", async function () {
                   await expect(player1_connection.attack()).to.be.reverted;
                   await expect(player1_connection.fortify()).to.be.reverted;
                   await expect(player1_connection.deploy()).to.emit(controls, "Deploying");
+              });
+              it("Player 1 can only attack after deploying", async function () {
+                  await expect(player2_connection.deploy()).to.be.reverted;
+                  await expect(player3_connection.deploy()).to.be.reverted;
+                  await expect(player4_connection.deploy()).to.be.reverted;
+                  await expect(player1_connection.deploy()).to.emit(controls, "Deploying");
+                  await expect(player2_connection.attack()).to.be.reverted;
+                  await expect(player3_connection.attack()).to.be.reverted;
+                  await expect(player4_connection.attack()).to.be.reverted;
+                  await expect(player1_connection.attack()).to.emit(controls, "Attacking");
               });
           });
       });

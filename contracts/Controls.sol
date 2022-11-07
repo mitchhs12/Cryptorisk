@@ -47,8 +47,10 @@ contract Controls is IControls, VRFConsumerBaseV2 {
         main_address = main;
     }
 
-    function deploy_control() external onlyMain {
+    function deploy_control() external onlyMain returns (uint) {
         emit Deploying();
+        uint num = 100;
+        return num;
     }
 
     function attack_control() external onlyMain {

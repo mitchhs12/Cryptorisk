@@ -12,7 +12,7 @@ import "hardhat/console.sol";
 interface IControls {
     function setMainAddress(address main) external;
 
-    function deploy_control() external;
+    function deploy_control() external returns (uint num);
 
     function attack_control() external;
 
@@ -196,7 +196,9 @@ contract Main is VRFConsumerBaseV2 {
             s_gameState == GameState.DEPLOY,
             "It is currently not deploy phase."
         );
-        IControls(controls_address).deploy_control();
+        uint num = 1;
+        num = IControls(controls_address).deploy_control();
+        console.log(num);
         s_gameState = GameState.ATTACK;
     }
 
