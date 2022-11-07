@@ -1,38 +1,45 @@
 const { network, ethers } = require("hardhat");
-const { developmentChains } = require("../helper-hardhat-config");
+const { developmentChains, networkConfig } = require("../helper-hardhat-config");
 const { verify } = require("../utils/verify");
+
+const VRF_SUB_FUND_AMOUNT = ethers.utils.parseEther("100");
 
 module.exports = async function ({ getNamedAccounts, deployments }) {
     const { deploy, log } = deployments;
     const { deployer } = await getNamedAccounts();
-    const args = [];
+    const chainId = network.config.chainId;
+    let vrfCoordinatorV2Address, subscriptionId;
 
-    const deployContract = await deploy("Deploy", {
+    if (developmentChains.includes(network.name)) {
+        const vrfCoordinatorV2Mock = await ethers.getContract("VRFCoordinatorV2Mock");
+        vrfCoordinatorV2Address = vrfCoordinatorV2Mock.address;
+        const tx = await vrfCoordinatorV2Mock.createSubscription();
+        const txReceipt = await tx.wait(1);
+        subscriptionId = txReceipt.events[0].args.subId;
+        await vrfCoordinatorV2Mock.fundSubscription(subscriptionId, VRF_SUB_FUND_AMOUNT);
+    } else {
+        vrfCoordinatorV2Address = networkConfig[chainId]["vrfCoordinatorV2"];
+        subscriptionId = networkConfig[chainId]["subscriptionId"];
+    }
+    const controlsArgs = [
+        vrfCoordinatorV2Address,
+        subscriptionId,
+        networkConfig[chainId]["gasLane"],
+        networkConfig[chainId]["callbackGasLimit"],
+    ];
+    const controls = await deploy("Controls", {
         from: deployer,
-        args: args,
+        args: controlsArgs,
         log: true,
         waitConfirmations: network.config.blockConfirmations || 1,
     });
-    const attackContract = await deploy("Attack", {
-        from: deployer,
-        args: args,
-        log: true,
-        waitConfirmations: network.config.blockConfirmations || 1,
-    });
-    const fortifyContract = await deploy("Fortify", {
-        from: deployer,
-        args: args,
-        log: true,
-        waitConfirmations: network.config.blockConfirmations || 1,
-    });
-    log("Gameplay Controls Deployed!");
+
+    log("Controls Deployed!");
     log("----------");
 
     if (!developmentChains.includes(network.name) && process.env.SNOWTRACE_API_KEY) {
         log("Verifying");
-        await verify(deployContract.address, mainArgs);
-        await verify(attackContract.address, mainArgs);
-        await verify(fortifyContract.address, mainArgs);
+        await verify(controls.address, mainArgs);
     }
 };
 

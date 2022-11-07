@@ -22,7 +22,6 @@ const { BytesLike, parseEther } = require("ethers/lib/utils");
               player3_connection = main.connect(player3);
               player4_connection = main.connect(player4);
               vrfCoordinatorV2Mock = await ethers.getContract("VRFCoordinatorV2Mock", deployer);
-              console.log(vrfCoordinatorV2Mock.address);
               entranceFee = await main.getEntranceFee();
           });
 
@@ -163,6 +162,22 @@ const { BytesLike, parseEther } = require("ethers/lib/utils");
                   assert.equal(troopsOwnedBy1, 30);
                   assert.equal(troopsOwnedBy2, 30);
                   assert.equal(troopsOwnedBy3, 30);
+              });
+          });
+          describe("Finished Game Setup", function () {
+              it("Emits GameSetupComplete", async function () {
+                  await player1_connection.enterLobby({ value: entranceFee });
+                  await player2_connection.enterLobby({ value: entranceFee });
+                  await player3_connection.enterLobby({ value: entranceFee });
+                  const tx = await player4_connection.enterLobby({ value: entranceFee });
+                  const receipt = await tx.wait(1);
+                  const firstId = receipt.events[3].args.requestId;
+                  const tx2 = await vrfCoordinatorV2Mock.fulfillRandomWords(firstId, main.address);
+                  const receipt2 = await tx2.wait(1);
+                  const secondId = receipt2.events[1].args.requestId;
+                  await expect(
+                      await vrfCoordinatorV2Mock.fulfillRandomWords(secondId, main.address)
+                  ).to.emit(main, "GameSetupComplete");
               });
           });
       });

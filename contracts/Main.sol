@@ -3,14 +3,21 @@ pragma solidity ^0.8.7;
 import "@chainlink/contracts/src/v0.8/interfaces/VRFCoordinatorV2Interface.sol";
 import "@chainlink/contracts/src/v0.8/VRFConsumerBaseV2.sol";
 import "hardhat/console.sol";
-import "./Deploy.sol";
-import "./Attack.sol";
-import "./Fortify.sol";
 
 /**@title Cryptorisk Main Contract
  * @author Michael King and Mitchell Spencer
  * @dev Implements the Chainlink VRF V2
  */
+
+interface IControls {
+    function setMainAddress(address main) external;
+
+    function deploy_control() external;
+
+    function attack_control() external;
+
+    function fortify_control() external;
+}
 
 contract Main is VRFConsumerBaseV2 {
     /* Type declarations */
@@ -22,18 +29,16 @@ contract Main is VRFConsumerBaseV2 {
         OPEN,
         CLOSED
     }
-    enum GameStage {
+    enum GameState {
         DEPLOY,
         ATTACK,
-        FORTIFY
+        FORTIFY,
+        INACTIVE
     }
+
     struct Territory_Info {
         uint owner;
         uint256 troops;
-    }
-    struct Test_struct {
-        uint q;
-        uint x;
     }
 
     /* Variables */
@@ -46,17 +51,16 @@ contract Main is VRFConsumerBaseV2 {
 
     // Setup Variables
     uint256 private immutable i_entranceFee;
-    address private immutable deploy_address;
-    address private immutable attack_address;
-    address private immutable fortify_address;
+    address private immutable controls_address;
 
     uint8[4] private territoriesAssigned = [0, 0, 0, 0]; // Used to track if player receives enough territory.
     uint256[] s_randomWordsArray;
-    Territory_Info[] private s_territories;
-    TerritoryState private s_territoryState;
-    LobbyState private s_lobbyState;
-    address payable[] private s_players;
-    address private current_player;
+    TerritoryState public s_territoryState;
+    GameState public s_gameState;
+    LobbyState public s_lobbyState;
+    Territory_Info[] public s_territories;
+    address payable[] public s_players;
+    address public player_turn;
 
     /* Events */
     event RequestedTerritoryRandomness(uint256 indexed requestId);
@@ -72,9 +76,7 @@ contract Main is VRFConsumerBaseV2 {
         bytes32 gasLane, // keyHash
         uint32 callbackGasLimit,
         uint256 entranceFee,
-        address deploy,
-        address attack,
-        address fortify
+        address controls
     ) VRFConsumerBaseV2(vrfCoordinatorV2) {
         i_vrfCoordinator = VRFCoordinatorV2Interface(vrfCoordinatorV2);
         i_subscriptionId = subscriptionId;
@@ -82,13 +84,14 @@ contract Main is VRFConsumerBaseV2 {
         i_callbackGasLimit = callbackGasLimit;
         i_entranceFee = entranceFee;
         s_lobbyState = LobbyState.OPEN;
-        deploy_address = deploy;
-        attack_address = attack;
-        fortify_address = fortify;
+        s_gameState = GameState.INACTIVE;
+        controls_address = controls;
     }
 
+    /* Modifiers */
+
     modifier onlyPlayer() {
-        require(msg.sender == current_player);
+        require(msg.sender == player_turn);
         _;
     }
 
@@ -183,42 +186,36 @@ contract Main is VRFConsumerBaseV2 {
             }
         }
         emit GameSetupComplete();
-        current_player = s_players[0];
+        s_gameState = GameState.DEPLOY;
+        IControls(controls_address).setMainAddress(address(this));
+        player_turn = s_players[0];
     }
 
-    function callDeploy() public onlyPlayer {
-        Deploy deploy_contract = Deploy(deploy_address);
-
-        s_territories = deploy_contract.deploy(
-            current_player,
-            s_players,
-            s_territories
+    function deploy() public onlyPlayer {
+        require(
+            s_gameState == GameState.DEPLOY,
+            "It is currently not deploy phase."
         );
+        IControls(controls_address).deploy_control();
+        s_gameState = GameState.ATTACK;
     }
 
-    function callAttack() public onlyPlayer {
-        Attack attack_contract = Attack(attack_address);
-
-        s_territories = attack_contract.attack(
-            current_player,
-            s_players,
-            s_territories
+    function attack() public onlyPlayer {
+        require(
+            s_gameState == GameState.ATTACK,
+            "It is currently not attack phase."
         );
+        IControls(controls_address).attack_control();
+        s_gameState = GameState.FORTIFY;
     }
 
-    function callFortify() public onlyPlayer {
-        Fortify fortify_contract = Fortify(fortify_address);
-
-        s_territories = fortify_contract.fortify(
-            current_player,
-            s_players,
-            s_territories
+    function fortify() public onlyPlayer {
+        require(
+            s_gameState == GameState.FORTIFY,
+            "It is currently not fortify phase."
         );
-    }
-
-    /** Tester Functions */
-    function testTerritoryAssignment() external {
-        assignTerritory(s_randomWordsArray);
+        IControls(controls_address).fortify_control();
+        s_gameState = GameState.DEPLOY;
     }
 
     /** Getter Functions */
@@ -281,5 +278,9 @@ contract Main is VRFConsumerBaseV2 {
 
     function getAllTerritories() public view returns (Territory_Info[] memory) {
         return s_territories;
+    }
+
+    function getPlayerTurn() public view returns (address) {
+        return player_turn;
     }
 }

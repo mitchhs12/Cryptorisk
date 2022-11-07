@@ -17,18 +17,12 @@ module.exports = async function ({ getNamedAccounts, deployments }) {
         const txReceipt = await tx.wait(1);
         subscriptionId = txReceipt.events[0].args.subId;
         await vrfCoordinatorV2Mock.fundSubscription(subscriptionId, VRF_SUB_FUND_AMOUNT);
-        const deploy = await ethers.getContract("Deploy");
-        const attack = await ethers.getContract("Attack");
-        const fortify = await ethers.getContract("Fortify");
-        deployAddress = deploy.address;
-        attackAddress = attack.address;
-        fortifyAddress = fortify.address;
+        const controls = await ethers.getContract("Controls");
+        controlsAddress = controls.address;
     } else {
         vrfCoordinatorV2Address = networkConfig[chainId]["vrfCoordinatorV2"];
         subscriptionId = networkConfig[chainId]["subscriptionId"];
-        deployAddress = networkConfig[chainId]["deploy"];
-        attackAddress = networkConfig[chainId]["attack"];
-        fortifyAddress = networkConfig[chainId]["fortify"];
+        controlsAddress = networkConfig[chainId]["controls"];
     }
     const mainArgs = [
         vrfCoordinatorV2Address,
@@ -36,9 +30,7 @@ module.exports = async function ({ getNamedAccounts, deployments }) {
         networkConfig[chainId]["gasLane"],
         networkConfig[chainId]["callbackGasLimit"],
         networkConfig[chainId]["lobbyEntranceFee"],
-        deployAddress,
-        attackAddress,
-        fortifyAddress,
+        controlsAddress,
     ];
     const main = await deploy("Main", {
         from: deployer,
