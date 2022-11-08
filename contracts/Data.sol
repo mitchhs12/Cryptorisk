@@ -69,6 +69,7 @@ contract Data is IData {
     //     41: [40,39],
     // ];
 
+    // Array containing territories that are neighbours of the territory of the index. 99 is a filler.
     uint8[][] public s_neighbours = [
         [1, 3, 29, 99, 99, 99],
         [0, 3, 4, 2, 99, 99],
@@ -220,6 +221,15 @@ contract Data is IData {
 
     function addTroopToTerritory(uint index) external onlyControls {
         s_territories[index].troops++;
+    }
+
+    function getNeighbours(uint territory)
+        external
+        view
+        onlyControls
+        returns (uint8[] memory)
+    {
+        return s_neighbours[territory];
     }
 
     function getTerritoryOwner(uint j)

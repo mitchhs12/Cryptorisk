@@ -22,6 +22,11 @@ interface IData {
     function updateContinents() external;
 
     function setControlsAddress(address controls) external;
+
+    function getNeighbours(uint territory)
+        external
+        view
+        returns (uint8[] memory);
 }
 
 contract Controls is IControls, VRFConsumerBaseV2 {
@@ -131,6 +136,26 @@ contract Controls is IControls, VRFConsumerBaseV2 {
 
     function attack_control() external onlyMain {
         emit Attacking();
+        // 1. Player clicks on their own territory
+        // 2. Player clicks on enemy territory.
+        // 3. Player chooses how many troops to attack with.
+        // 4. Player attacks
+        uint8[] memory neighbours;
+        uint own_territory_clicked = 0; // This variable will be supplied by the front end.
+        uint territory_owner = IData(data_address).getTerritoryOwner(
+            own_territory_clicked
+        );
+        if (s_playerTurn != territory_owner) {
+            // reject the click
+        } else {
+            neighbours = IData(data_address).getNeighbours(
+                own_territory_clicked
+            );
+        }
+
+        // for (int i =0; i< 6;i++) {
+        //     if (neighbours[i] == territory)
+        // }
     }
 
     function fortify_control() external onlyMain {
@@ -170,10 +195,6 @@ contract Controls is IControls, VRFConsumerBaseV2 {
         onlyMain
         returns (uint owner)
     {
-        // console.log(
-        //     "Owner inside controls is: ",
-        //     IData(data_address).getTerritoryOwner(j)
-        // );
         owner = IData(data_address).getTerritoryOwner(j);
         return owner;
     }
