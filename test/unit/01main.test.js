@@ -133,26 +133,26 @@ const { BytesLike, parseEther } = require("ethers/lib/utils");
                   let troopsOwnedBy2 = 0;
                   let troopsOwnedBy3 = 0;
                   for (let i = 0; i < 42; i++) {
-                      territory = await controls.getTerritories(i);
+                      territory = await data.getTerritories(i);
                       console.log(
                           "Territory",
                           i,
                           "is owned by player",
-                          territory.owner.toNumber(),
+                          territory.owner,
                           "and has",
                           territory.troops.toNumber(),
                           "troops."
                       );
-                      if (territory.owner.toNumber() == 0) {
+                      if (territory.owner == 0) {
                           territoriesOwnerBy0++;
                           troopsOwnedBy0 = troopsOwnedBy0 + territory.troops.toNumber();
-                      } else if (territory.owner.toNumber() == 1) {
+                      } else if (territory.owner == 1) {
                           territoriesOwnerBy1++;
                           troopsOwnedBy1 = troopsOwnedBy1 + territory.troops.toNumber();
-                      } else if (territory.owner.toNumber() == 2) {
+                      } else if (territory.owner == 2) {
                           territoriesOwnerBy2++;
                           troopsOwnedBy2 = troopsOwnedBy2 + territory.troops.toNumber();
-                      } else if (territory.owner.toNumber() == 3) {
+                      } else if (territory.owner == 3) {
                           territoriesOwnerBy3++;
                           troopsOwnedBy3 = troopsOwnedBy3 + territory.troops.toNumber();
                       }

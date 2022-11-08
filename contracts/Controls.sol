@@ -20,6 +20,8 @@ interface IData {
     function addTroopToTerritory(uint index) external;
 
     function updateContinents() external;
+
+    function setControlsAddress(address controls) external;
 }
 
 contract Controls is IControls, VRFConsumerBaseV2 {
@@ -81,6 +83,7 @@ contract Controls is IControls, VRFConsumerBaseV2 {
         emit ReceivedMain(main);
         main_address = main;
         s_mainSet = mainAddressSent.TRUE;
+        IData(data_address).setControlsAddress(address(this));
     }
 
     function deploy_control(uint8 amountToDeploy, uint8 location)

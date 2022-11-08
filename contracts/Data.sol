@@ -25,19 +25,19 @@ contract Data is IData {
     address private controls_address;
     controlsAddressSent public s_controlsSet;
     // uint8[42][6] public s_neighbours = [
-    //     [],
-    //     [],
-    //     [],
-    //     [],
-    //     [],
-    //     [],
-    //     [],
-    //     [],
-    //     [],
-    //     [],
-    //     [],
-    //     [],
-    //     []
+    //     0: [1,3,29],
+    //     1: [0,3,4,2],
+    //     2: [1,4,5,13],
+    //     3: [0,1,4,6],
+    //     4: [1,2,3,5,6,7],
+    //     5: [2,4,7],
+    //     6: [3,4,7,8],
+    //     7: [4,5,6,8],
+    //     8: [6,7,9],
+    //     9: [8],
+    //     10: [],
+    //     11: [],
+    //     12: []
     // ];
 
     modifier onlyControls() {
