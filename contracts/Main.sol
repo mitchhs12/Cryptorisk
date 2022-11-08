@@ -202,6 +202,7 @@ contract Main is VRFConsumerBaseV2 {
                     playerTerritoryIndexes[index++] = j;
                 }
             }
+
             for (uint j = 0; j < 30 - territoriesAssigned[i]; j++) {
                 uint territoryAssignedTroop = randomWords[randomWordsIndex++] %
                     territoriesAssigned[i];

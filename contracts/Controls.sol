@@ -170,7 +170,11 @@ contract Controls is IControls, VRFConsumerBaseV2 {
         onlyMain
         returns (uint owner)
     {
-        IData(data_address).getTerritoryOwner(j);
+        // console.log(
+        //     "Owner inside controls is: ",
+        //     IData(data_address).getTerritoryOwner(j)
+        // );
+        owner = IData(data_address).getTerritoryOwner(j);
         return owner;
     }
 
