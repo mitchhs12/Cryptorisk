@@ -10,13 +10,23 @@ import "hardhat/console.sol";
  */
 
 interface IControls {
-    function setMainAddress(address main) external;
+    function set_players(address payable[] memory) external;
 
-    function deploy_control() external returns (uint num);
+    function push_to_territories(uint8 playerAwarded) external;
+
+    function get_territory_owner(uint) external returns (uint);
+
+    function add_troop_to_territory(uint) external;
+
+    function set_main_address(address main) external;
+
+    function deploy_control(uint8 amountToDeploy, uint8 location) external;
 
     function attack_control() external;
 
     function fortify_control() external;
+
+    function get_troops_to_deploy() external view returns (uint8);
 }
 
 contract Main is VRFConsumerBaseV2 {
@@ -36,9 +46,9 @@ contract Main is VRFConsumerBaseV2 {
         INACTIVE
     }
 
-    struct Territory_Info {
-        uint owner;
-        uint256 troops;
+    enum mainAddressSent {
+        TRUE,
+        FALSE
     }
 
     /* Variables */
@@ -52,15 +62,16 @@ contract Main is VRFConsumerBaseV2 {
     // Setup Variables
     uint256 private immutable i_entranceFee;
     address private immutable controls_address;
+    address private immutable data_address;
 
     uint8[4] private territoriesAssigned = [0, 0, 0, 0]; // Used to track if player receives enough territory.
     uint256[] s_randomWordsArray;
     TerritoryState public s_territoryState;
     GameState public s_gameState;
     LobbyState public s_lobbyState;
-    Territory_Info[] public s_territories;
     address payable[] public s_players;
     address public player_turn;
+    mainAddressSent public s_mainSet;
 
     /* Events */
     event RequestedTerritoryRandomness(uint256 indexed requestId);
@@ -76,7 +87,8 @@ contract Main is VRFConsumerBaseV2 {
         bytes32 gasLane, // keyHash
         uint32 callbackGasLimit,
         uint256 entranceFee,
-        address controls
+        address controls,
+        address data
     ) VRFConsumerBaseV2(vrfCoordinatorV2) {
         i_vrfCoordinator = VRFCoordinatorV2Interface(vrfCoordinatorV2);
         i_subscriptionId = subscriptionId;
@@ -85,7 +97,9 @@ contract Main is VRFConsumerBaseV2 {
         i_entranceFee = entranceFee;
         s_lobbyState = LobbyState.OPEN;
         s_gameState = GameState.INACTIVE;
+        s_mainSet = mainAddressSent.FALSE;
         controls_address = controls;
+        data_address = data;
     }
 
     /* Modifiers */
@@ -107,6 +121,16 @@ contract Main is VRFConsumerBaseV2 {
             emit GameStarting();
             requestRandomness(42);
         }
+    }
+
+    // call this function as soon as contract is deployed
+    function setMainAddress() public {
+        require(
+            s_mainSet == mainAddressSent.FALSE,
+            "Controls contract has already received Main address"
+        );
+        IControls(controls_address).set_main_address(address(this));
+        s_mainSet = mainAddressSent.TRUE;
     }
 
     function requestRandomness(uint32 num_words) private {
@@ -150,7 +174,7 @@ contract Main is VRFConsumerBaseV2 {
         for (uint i = 0; i < randomWords.length; i++) {
             indexAssignedTerritory = randomWords[i] % remainingPlayers; // Calculates which index from playerSelection will receive the territory
             playerAwarded = playerSelection[indexAssignedTerritory]; // Player to be awarded territory
-            s_territories.push(Territory_Info(playerAwarded, 1));
+            IControls(controls_address).push_to_territories(playerAwarded);
             territoriesAssigned[playerAwarded]++;
             if (territoriesAssigned[playerAwarded] == territoryCap) {
                 delete playerSelection[playerAwarded]; // Removes awarded player from the array upon hitting territory cap.
@@ -173,33 +197,36 @@ contract Main is VRFConsumerBaseV2 {
                 territoriesAssigned[i]
             ); // Initializes array of indexes for territories owned by player i
             uint index = 0;
-            for (uint j = 0; j < s_territories.length; j++) {
-                if (s_territories[j].owner == i) {
+            for (uint j = 0; j < 42; j++) {
+                if (IControls(controls_address).get_territory_owner(j) == i) {
                     playerTerritoryIndexes[index++] = j;
                 }
             }
             for (uint j = 0; j < 30 - territoriesAssigned[i]; j++) {
                 uint territoryAssignedTroop = randomWords[randomWordsIndex++] %
                     territoriesAssigned[i];
-                s_territories[playerTerritoryIndexes[territoryAssignedTroop]]
-                    .troops++;
+                IControls(controls_address).add_troop_to_territory(
+                    playerTerritoryIndexes[territoryAssignedTroop]
+                );
             }
         }
         emit GameSetupComplete();
         s_gameState = GameState.DEPLOY;
-        IControls(controls_address).setMainAddress(address(this));
-        player_turn = s_players[0];
+        IControls(controls_address).set_players(s_players);
     }
 
-    function deploy() public onlyPlayer {
+    function deploy(uint8 amountToDeploy, uint8 location) public onlyPlayer {
         require(
             s_gameState == GameState.DEPLOY,
             "It is currently not deploy phase."
         );
-        uint num = 1;
-        num = IControls(controls_address).deploy_control();
-        console.log(num);
-        s_gameState = GameState.ATTACK;
+        require(
+            amountToDeploy <= IControls(controls_address).get_troops_to_deploy()
+        );
+        IControls(controls_address).deploy_control(amountToDeploy, location);
+        if (IControls(controls_address).get_troops_to_deploy() == 0) {
+            s_gameState = GameState.ATTACK;
+        }
     }
 
     function attack() public onlyPlayer {
@@ -218,9 +245,6 @@ contract Main is VRFConsumerBaseV2 {
         );
         IControls(controls_address).fortify_control();
         s_gameState = GameState.DEPLOY;
-        if (player_turn == s_players[s_players.length - 1]) {
-            player_turn = s_players[0];
-        }
     }
 
     /** Getter Functions */
@@ -271,18 +295,6 @@ contract Main is VRFConsumerBaseV2 {
 
     function getLobbyState() public view returns (LobbyState) {
         return s_lobbyState;
-    }
-
-    function getTerritories(uint territoryId)
-        public
-        view
-        returns (Territory_Info memory)
-    {
-        return s_territories[territoryId];
-    }
-
-    function getAllTerritories() public view returns (Territory_Info[] memory) {
-        return s_territories;
     }
 
     function getPlayerTurn() public view returns (address) {

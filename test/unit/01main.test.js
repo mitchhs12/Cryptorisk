@@ -17,6 +17,9 @@ const { BytesLike, parseEther } = require("ethers/lib/utils");
               player4 = accounts[4];
               await deployments.fixture(["all"]);
               main = await ethers.getContract("Main");
+              controls = await ethers.getContract("Controls");
+              data = await ethers.getContract("Data");
+              await main.setMainAddress();
               player1_connection = main.connect(player1);
               player2_connection = main.connect(player2);
               player3_connection = main.connect(player3);
@@ -130,7 +133,7 @@ const { BytesLike, parseEther } = require("ethers/lib/utils");
                   let troopsOwnedBy2 = 0;
                   let troopsOwnedBy3 = 0;
                   for (let i = 0; i < 42; i++) {
-                      territory = await main.getTerritories(i);
+                      territory = await controls.getTerritories(i);
                       console.log(
                           "Territory",
                           i,

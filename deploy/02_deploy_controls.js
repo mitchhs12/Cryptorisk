@@ -17,6 +17,8 @@ module.exports = async function ({ getNamedAccounts, deployments }) {
         const txReceipt = await tx.wait(1);
         subscriptionId = txReceipt.events[0].args.subId;
         await vrfCoordinatorV2Mock.fundSubscription(subscriptionId, VRF_SUB_FUND_AMOUNT);
+        const data = await ethers.getContract("Data");
+        dataAddress = data.address;
     } else {
         vrfCoordinatorV2Address = networkConfig[chainId]["vrfCoordinatorV2"];
         subscriptionId = networkConfig[chainId]["subscriptionId"];
@@ -26,6 +28,7 @@ module.exports = async function ({ getNamedAccounts, deployments }) {
         subscriptionId,
         networkConfig[chainId]["gasLane"],
         networkConfig[chainId]["callbackGasLimit"],
+        dataAddress,
     ];
     const controls = await deploy("Controls", {
         from: deployer,

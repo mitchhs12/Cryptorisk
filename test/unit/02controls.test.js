@@ -18,6 +18,8 @@ const { BytesLike, parseEther } = require("ethers/lib/utils");
               await deployments.fixture(["all"]);
               main = await ethers.getContract("Main");
               controls = await ethers.getContract("Controls");
+              data = await ethers.getContract("Data");
+              await main.setMainAddress();
               player1_connection = main.connect(player1);
               player2_connection = main.connect(player2);
               player3_connection = main.connect(player3);
@@ -35,7 +37,9 @@ const { BytesLike, parseEther } = require("ethers/lib/utils");
               const secondId = receipt2.events[1].args.requestId;
               await vrfCoordinatorV2Mock.fulfillRandomWords(secondId, main.address);
           });
-
+          describe("SetMain function", function () {
+              it("Only one person can call main", async function () {});
+          });
           describe("Main can call controls", function () {
               it("Sets to player1 turn in Main", async function () {
                   const turn = await main.getPlayerTurn();
