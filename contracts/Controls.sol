@@ -134,24 +134,41 @@ contract Controls is IControls, VRFConsumerBaseV2 {
         }
     }
 
+    function validate_owner(uint territory_clicked) internal returns (bool) {
+        uint territory_owner = IData(data_address).getTerritoryOwner(
+            territory_clicked
+        );
+        if (territory_owner == s_playerTurn) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    function validate_attackable(uint territoryAttacking, uint territoryOwned)
+        internal
+        view
+        returns (bool)
+    {
+        uint8[] memory neighbours = IData(data_address).getNeighbours(
+            territoryOwned
+        );
+        for (uint i = 0; i < 6; i++) {
+            if (territoryAttacking == neighbours[i]) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     function attack_control() external onlyMain {
         emit Attacking();
         // 1. Player clicks on their own territory
         // 2. Player clicks on enemy territory.
         // 3. Player chooses how many troops to attack with.
         // 4. Player attacks
-        uint8[] memory neighbours;
-        uint own_territory_clicked = 0; // This variable will be supplied by the front end.
-        uint territory_owner = IData(data_address).getTerritoryOwner(
-            own_territory_clicked
-        );
-        if (s_playerTurn != territory_owner) {
-            // reject the click
-        } else {
-            neighbours = IData(data_address).getNeighbours(
-                own_territory_clicked
-            );
-        }
+        uint territoryClicked = 0;
+        validate_owner(territoryClicked);
 
         // for (int i =0; i< 6;i++) {
         //     if (neighbours[i] == territory)
