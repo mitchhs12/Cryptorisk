@@ -24,7 +24,21 @@ contract Data is IData {
     Territory_Info[] public s_territories;
     address private controls_address;
     controlsAddressSent public s_controlsSet;
-    uint8[42][6] public s_neighbours;
+    // uint8[42][6] public s_neighbours = [
+    //     [],
+    //     [],
+    //     [],
+    //     [],
+    //     [],
+    //     [],
+    //     [],
+    //     [],
+    //     [],
+    //     [],
+    //     [],
+    //     [],
+    //     []
+    // ];
 
     modifier onlyControls() {
         require(msg.sender == controls_address);
