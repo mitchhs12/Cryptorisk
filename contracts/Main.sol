@@ -20,13 +20,21 @@ interface IControls {
 
     function set_main_address(address main) external;
 
-    function deploy_control(uint8 amountToDeploy, uint8 location) external;
+    function deploy_control(uint8 amountToDeploy, uint8 location)
+        external
+        returns (bool);
 
-    function attack_control() external;
+    function attack_control(
+        uint8 territoryOwned,
+        uint8 territoryAttacking,
+        uint256 troopQuantity
+    ) external;
 
     function fortify_control() external;
 
     function get_troops_to_deploy() external view returns (uint8);
+
+    function getPlayerTurn() external view returns (address);
 }
 
 contract Main is VRFConsumerBaseV2 {
@@ -105,7 +113,7 @@ contract Main is VRFConsumerBaseV2 {
     /* Modifiers */
 
     modifier onlyPlayer() {
-        require(msg.sender == player_turn);
+        require(msg.sender == IControls(controls_address).getPlayerTurn());
         _;
     }
 
@@ -219,23 +227,35 @@ contract Main is VRFConsumerBaseV2 {
     function deploy(uint8 amountToDeploy, uint8 location) public onlyPlayer {
         require(
             s_gameState == GameState.DEPLOY,
-            "It is currently not deploy phase."
+            "It is currently not deploy phase!"
         );
         require(
-            amountToDeploy <= IControls(controls_address).get_troops_to_deploy()
+            amountToDeploy <=
+                IControls(controls_address).get_troops_to_deploy(),
+            "You do not have enough troops!"
         );
-        IControls(controls_address).deploy_control(amountToDeploy, location);
-        if (IControls(controls_address).get_troops_to_deploy() == 0) {
+
+        if (
+            IControls(controls_address).deploy_control(amountToDeploy, location)
+        ) {
             s_gameState = GameState.ATTACK;
         }
     }
 
-    function attack() public onlyPlayer {
+    function attack(
+        uint8 territoryOwned,
+        uint8 territoryAttacking,
+        uint256 troopQuantity
+    ) public onlyPlayer {
         require(
             s_gameState == GameState.ATTACK,
             "It is currently not attack phase."
         );
-        IControls(controls_address).attack_control();
+        IControls(controls_address).attack_control(
+            territoryOwned,
+            territoryAttacking,
+            troopQuantity
+        );
         s_gameState = GameState.FORTIFY;
     }
 
@@ -296,9 +316,5 @@ contract Main is VRFConsumerBaseV2 {
 
     function getLobbyState() public view returns (LobbyState) {
         return s_lobbyState;
-    }
-
-    function getPlayerTurn() public view returns (address) {
-        return player_turn;
     }
 }

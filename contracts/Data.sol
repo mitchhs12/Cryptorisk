@@ -71,7 +71,7 @@ contract Data is IData {
 
     // Array containing territories that are neighbours of the territory of the index. 99 is a filler.
     uint8[][] public s_neighbours = [
-        [1, 3, 29, 99, 99, 99],
+        [1, 3, 29, 99, 99, 99], //0
         [0, 3, 4, 2, 99, 99],
         [1, 4, 5, 13, 99, 99],
         [0, 1, 4, 6, 99, 99],
@@ -81,7 +81,7 @@ contract Data is IData {
         [4, 5, 6, 8, 99, 99],
         [6, 7, 9, 99, 99, 99],
         [8, 10, 11, 99, 99, 99],
-        [9, 11, 12, 99, 99, 99],
+        [9, 11, 12, 99, 99, 99], //10
         [9, 10, 12, 20, 99, 99],
         [10, 11, 99, 99, 99, 99],
         [2, 14, 15, 99, 99, 99],
@@ -91,7 +91,7 @@ contract Data is IData {
         [14, 16, 19, 26, 33, 35],
         [15, 16, 19, 20, 99, 99],
         [16, 17, 18, 20, 21, 35],
-        [11, 18, 19, 21, 22, 23],
+        [11, 18, 19, 21, 22, 23], //20
         [19, 20, 23, 35, 99, 99],
         [20, 21, 23, 24, 99, 99],
         [20, 21, 22, 24, 25, 35],
@@ -215,12 +215,20 @@ contract Data is IData {
         return s_continents[continent].owner;
     }
 
+    function getContinentInfo() public view returns (Continent_Info[6] memory) {
+        return s_continents;
+    }
+
     function pushToTerritories(uint8 playerAwarded) external onlyControls {
         s_territories.push(Territory_Info(playerAwarded, 1));
     }
 
     function addTroopToTerritory(uint index) external onlyControls {
         s_territories[index].troops++;
+    }
+
+    function removeTroopFromTerritory(uint index) external onlyControls {
+        s_territories[index].troops--;
     }
 
     function getNeighbours(uint territory)
@@ -232,13 +240,11 @@ contract Data is IData {
         return s_neighbours[territory];
     }
 
-    function getTerritoryOwner(uint j)
-        external
-        view
-        onlyControls
-        returns (uint8 owner)
-    {
-        // console.log("Owner inside data is: ", s_territories[j].owner);
+    function getTerritoryOwner(uint j) public view returns (uint8 owner) {
         return s_territories[j].owner;
+    }
+
+    function getTroopCount(uint territory) public view returns (uint256) {
+        return s_territories[territory].troops;
     }
 }
