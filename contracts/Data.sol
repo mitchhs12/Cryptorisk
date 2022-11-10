@@ -24,50 +24,6 @@ contract Data is IData {
     Territory_Info[] public s_territories;
     address private controls_address;
     controlsAddressSent public s_controlsSet;
-    // uint8[42][6] public s_neighbours = [
-    //     0: [1,3,29],
-    //     1: [0,3,4,2],
-    //     2: [1,4,5,13],
-    //     3: [0,1,4,6],
-    //     4: [1,2,3,5,6,7],
-    //     5: [2,4,7],
-    //     6: [3,4,7,8],
-    //     7: [4,5,6,8],
-    //     8: [6,7,9],
-    //     9: [8,10,11],
-    //     10: [9,11,12],
-    //     11: [9,10,12,20],
-    //     12: [10,11],
-    //     13: [2,14,15],
-    //     14: [13,15,16,17],
-    //     15: [13,14,16,18],
-    //     16: [14,15,17,18,19],
-    //     17: [14,16,19,26,33,35],
-    //     18: [15,16,19,20],
-    //     19: [16,17,18,20,21,35],
-    //     20: [11,18,19,21,22,23],
-    //     21: [19,20,23,35],
-    //     22: [20,21,23,24],
-    //     23: [20,21,22,24,25,35],
-    //     24: [22,23,25],
-    //     25: [23,24],
-    //     26: [17,27,33,34],
-    //     27: [26,28,30,31,34],
-    //     28: [27,30,29],
-    //     29: [28,30,31,32,0],
-    //     30: [27,28,29,31],
-    //     31: [29,30,27,34,32],
-    //     32: [29,31],
-    //     33: [17,26,34,36,35],
-    //     34: [31,27,26,33,36,37],
-    //     35: [19,17,33,36,23,21],
-    //     36: [35,33,34,37],
-    //     37: [34,36,38],
-    //     38: [37,39,40],
-    //     39: [38,41,44],
-    //     40: [38,39,41],
-    //     41: [40,39],
-    // ];
 
     // Array containing territories that are neighbours of the territory of the index. 99 is a filler.
     uint8[][] public s_neighbours = [
@@ -159,13 +115,13 @@ contract Data is IData {
     }
 
     function updateContinentsLoop(
-        uint loopStart,
-        uint loopEnd,
+        uint256 loopStart,
+        uint256 loopEnd,
         uint8 continent
     ) internal {
         uint8 owner;
         uint8 prevOwner;
-        for (uint i = loopStart; i < loopEnd; i++) {
+        for (uint256 i = loopStart; i < loopEnd; i++) {
             owner = s_territories[i].owner;
             // if continent owner is not previous owner, the loop will break since owner doesn't own continent
             if (i != loopEnd && owner != prevOwner) {
@@ -198,20 +154,16 @@ contract Data is IData {
         return s_territories;
     }
 
-    function getTerritories(uint territoryId)
-        public
-        view
-        returns (Territory_Info memory)
-    {
+    function getTerritories(uint256 territoryId) public view returns (Territory_Info memory) {
         return s_territories[territoryId];
     }
 
     /* Controls Functions */
-    function getContinentBonus(uint continent) external view returns (uint8) {
+    function getContinentBonus(uint256 continent) external view returns (uint8) {
         return s_continents[continent].troopBonus;
     }
 
-    function getContinentOwner(uint continent) external view returns (uint8) {
+    function getContinentOwner(uint256 continent) external view returns (uint8) {
         return s_continents[continent].owner;
     }
 
@@ -223,28 +175,31 @@ contract Data is IData {
         s_territories.push(Territory_Info(playerAwarded, 1));
     }
 
-    function addTroopToTerritory(uint index) external onlyControls {
+    function addTroopToTerritory(uint256 index) external onlyControls {
         s_territories[index].troops++;
     }
 
-    function removeTroopFromTerritory(uint index) external onlyControls {
+    function removeTroopFromTerritory(uint256 index) external onlyControls {
         s_territories[index].troops--;
     }
 
-    function getNeighbours(uint territory)
-        external
-        view
-        onlyControls
-        returns (uint8[] memory)
-    {
+    function getNeighbours(uint256 territory) external view onlyControls returns (uint8[] memory) {
         return s_neighbours[territory];
     }
 
-    function getTerritoryOwner(uint j) public view returns (uint8 owner) {
+    function getTerritoryOwner(uint256 j) public view returns (uint8 owner) {
         return s_territories[j].owner;
     }
 
-    function getTroopCount(uint territory) public view returns (uint256) {
+    function getTroopCount(uint256 territory) public view returns (uint256) {
         return s_territories[territory].troops;
+    }
+
+    function changeOwner(uint256 territory, uint8 newOwner) external onlyControls {
+        s_territories[territory].owner = newOwner;
+    }
+
+    function resetData() external onlyControls {
+        delete s_territories;
     }
 }

@@ -14,15 +14,13 @@ interface IControls {
 
     function push_to_territories(uint8 playerAwarded) external;
 
-    function get_territory_owner(uint) external returns (uint);
+    function get_territory_owner(uint256) external returns (uint256);
 
-    function add_troop_to_territory(uint) external;
+    function add_troop_to_territory(uint256) external;
 
     function set_main_address(address main) external;
 
-    function deploy_control(uint8 amountToDeploy, uint8 location)
-        external
-        returns (bool);
+    function deploy_control(uint8 amountToDeploy, uint8 location) external returns (bool);
 
     function attack_control(
         uint8 territoryOwned,
@@ -30,7 +28,11 @@ interface IControls {
         uint256 troopQuantity
     ) external;
 
-    function fortify_control() external;
+    function fortify_control(
+        uint8 territoryMovingFrom,
+        uint8 territoryMovingTo,
+        uint256 troopsMoving
+    ) external returns (bool);
 
     function get_troops_to_deploy() external view returns (uint8);
 
@@ -88,6 +90,11 @@ contract Main is VRFConsumerBaseV2 {
     event GameSetupComplete();
     event PlayerJoinedLobby(address indexed player);
     event GameStarting();
+    event WinnerSentFunds(address indexed player);
+    event MainReset();
+
+    /* Errors */
+    error Transfer___Failed();
 
     constructor(
         address vrfCoordinatorV2,
@@ -117,6 +124,11 @@ contract Main is VRFConsumerBaseV2 {
         _;
     }
 
+    modifier onlyControls() {
+        require(msg.sender == controls_address);
+        _;
+    }
+
     /* Functions */
 
     function enterLobby() public payable {
@@ -133,10 +145,7 @@ contract Main is VRFConsumerBaseV2 {
 
     // call this function as soon as contract is deployed
     function setMainAddress() public {
-        require(
-            s_mainSet == mainAddressSent.FALSE,
-            "Controls contract has already received Main address"
-        );
+        require(s_mainSet == mainAddressSent.FALSE, "Controls contract has already received Main address");
         IControls(controls_address).set_main_address(address(this));
         s_mainSet = mainAddressSent.TRUE;
     }
@@ -179,7 +188,7 @@ contract Main is VRFConsumerBaseV2 {
         uint8 remainingPlayers = 4; // Ticks down as players hit their territory cap
         uint256 indexAssignedTerritory; // Index of playerSelection that contains a list of eligible players to receive territory.
         uint8 playerAwarded; // Stores the player to be awarded territory, for pushing into the s_territories array.'
-        for (uint i = 0; i < randomWords.length; i++) {
+        for (uint256 i = 0; i < randomWords.length; i++) {
             indexAssignedTerritory = randomWords[i] % remainingPlayers; // Calculates which index from playerSelection will receive the territory
             playerAwarded = playerSelection[indexAssignedTerritory]; // Player to be awarded territory
             IControls(controls_address).push_to_territories(playerAwarded);
@@ -197,26 +206,21 @@ contract Main is VRFConsumerBaseV2 {
     }
 
     function assignTroops(uint256[] memory randomWords) private {
-        uint randomWordsIndex = 0;
+        uint256 randomWordsIndex = 0;
         // s_territories.length == 42
         // playerTerritoryIndexes.length == 10 or 11
-        for (uint i = 0; i < 4; i++) {
-            uint[] memory playerTerritoryIndexes = new uint[](
-                territoriesAssigned[i]
-            ); // Initializes array of indexes for territories owned by player i
-            uint index = 0;
-            for (uint j = 0; j < 42; j++) {
+        for (uint256 i = 0; i < 4; i++) {
+            uint256[] memory playerTerritoryIndexes = new uint256[](territoriesAssigned[i]); // Initializes array of indexes for territories owned by player i
+            uint256 index = 0;
+            for (uint256 j = 0; j < 42; j++) {
                 if (IControls(controls_address).get_territory_owner(j) == i) {
                     playerTerritoryIndexes[index++] = j;
                 }
             }
 
-            for (uint j = 0; j < 30 - territoriesAssigned[i]; j++) {
-                uint territoryAssignedTroop = randomWords[randomWordsIndex++] %
-                    territoriesAssigned[i];
-                IControls(controls_address).add_troop_to_territory(
-                    playerTerritoryIndexes[territoryAssignedTroop]
-                );
+            for (uint256 j = 0; j < 30 - territoriesAssigned[i]; j++) {
+                uint256 territoryAssignedTroop = randomWords[randomWordsIndex++] % territoriesAssigned[i];
+                IControls(controls_address).add_troop_to_territory(playerTerritoryIndexes[territoryAssignedTroop]);
             }
         }
         emit GameSetupComplete();
@@ -225,21 +229,11 @@ contract Main is VRFConsumerBaseV2 {
     }
 
     function deploy(uint8 amountToDeploy, uint8 location) public onlyPlayer {
-        require(
-            s_gameState == GameState.DEPLOY,
-            "It is currently not deploy phase!"
-        );
-        require(
-            amountToDeploy <=
-                IControls(controls_address).get_troops_to_deploy(),
-            "You do not have enough troops!"
-        );
+        require(s_gameState == GameState.DEPLOY, "It is currently not deploy phase!");
+        require(amountToDeploy <= IControls(controls_address).get_troops_to_deploy(), "You do not have enough troops!");
 
-        if (
-            IControls(controls_address).deploy_control(amountToDeploy, location)
-        ) {
-            s_gameState = GameState.ATTACK;
-        }
+        require(IControls(controls_address).deploy_control(amountToDeploy, location), "Your deployment failed!");
+        s_gameState = GameState.ATTACK;
     }
 
     function attack(
@@ -247,25 +241,36 @@ contract Main is VRFConsumerBaseV2 {
         uint8 territoryAttacking,
         uint256 troopQuantity
     ) public onlyPlayer {
-        require(
-            s_gameState == GameState.ATTACK,
-            "It is currently not attack phase."
-        );
-        IControls(controls_address).attack_control(
-            territoryOwned,
-            territoryAttacking,
-            troopQuantity
-        );
+        require(s_gameState == GameState.ATTACK, "It is currently not attack phase!");
+        IControls(controls_address).attack_control(territoryOwned, territoryAttacking, troopQuantity);
+    }
+
+    // player clicks this button when they have finished attacking
+    function finishAttack() public onlyPlayer {
         s_gameState = GameState.FORTIFY;
     }
 
-    function fortify() public onlyPlayer {
+    function fortify(
+        uint8 territoryMovingFrom,
+        uint8 territoryMovingTo,
+        uint256 troopsMoving
+    ) public onlyPlayer {
+        require(s_gameState == GameState.FORTIFY, "It is currently not fortify phase!");
         require(
-            s_gameState == GameState.FORTIFY,
-            "It is currently not fortify phase."
+            IControls(controls_address).fortify_control(territoryMovingFrom, territoryMovingTo, troopsMoving),
+            "Your fortification attempt failed"
         );
-        IControls(controls_address).fortify_control();
         s_gameState = GameState.DEPLOY;
+    }
+
+    function payWinner(address winner) public onlyControls returns (bool) {
+        (bool success, ) = winner.call{value: address(this).balance}("");
+        if (!success) {
+            revert Transfer___Failed();
+        }
+        emit WinnerSentFunds(winner);
+        resetMain();
+        return success;
     }
 
     /** Getter Functions */
@@ -274,11 +279,7 @@ contract Main is VRFConsumerBaseV2 {
         return s_randomWordsArray;
     }
 
-    function getRandomWordsArrayIndex(uint256 index)
-        public
-        view
-        returns (uint256)
-    {
+    function getRandomWordsArrayIndex(uint256 index) public view returns (uint256) {
         return s_randomWordsArray[index];
     }
 
@@ -316,5 +317,14 @@ contract Main is VRFConsumerBaseV2 {
 
     function getLobbyState() public view returns (LobbyState) {
         return s_lobbyState;
+    }
+
+    // Resets everything
+    function resetMain() internal {
+        s_lobbyState = LobbyState.OPEN;
+        s_players = new address payable[](0);
+        s_gameState = GameState.INACTIVE;
+        territoriesAssigned = [0, 0, 0, 0];
+        emit MainReset();
     }
 }
