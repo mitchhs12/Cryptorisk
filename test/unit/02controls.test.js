@@ -85,6 +85,18 @@ const { Contract } = require("ethers")
                   assert.equal(continents[5].troopBonus, 2)
               })
           })
+          describe("We can deploy troops", function () {
+              it("Deploying troops to territory not owned by player.", async function () {
+                  territoryOwner = await data.getTerritories(1)
+                  console.log("Territory owned by ", territoryOwner.owner)
+                  await expect(player1_connection.deploy(3, 1)).to.be.reverted
+
+                  //   territoryDeployingTo = await data.getTerritories(4)
+                  //   console.log("Territory deploying to starts with ", territoryDeployingTo.troops.toNumber(), " troops.")
+                  //   await player1_connection.deploy(3, 4)
+                  //   console.log("Territory deploying to now has ", territoryDeployingTo.troops.toNumber(), " troops.")
+              })
+          })
           describe("We receive some randomness when we attack", function () {
               it("Rolls the Dice Correctly", async function () {
                   await player1_connection.deploy(3, 4)
@@ -95,5 +107,58 @@ const { Contract } = require("ethers")
                       await vrfCoordinatorV2Mock.fulfillRandomWords(requestId, controls.address) // We can DELETE s_requestId from Storage in the contract (if this passes)
                   ).to.emit(controls, "DiceRolled")
               })
+          })
+          describe("We successfully attack", function () {
+              it("Attack successful", async function () {
+                  territoryAttacking = await data.getTerritories(2)
+                  territoryDefending = await data.getTerritories(13)
+                  console.log("Defending territory has: ", territoryDefending.troops.toNumber())
+                  console.log("Attacking territory has: ", territoryAttacking.troops.toNumber())
+
+                  await player1_connection.deploy(3, 4)
+                  const tx = await player1_connection.attack(2, 13, 3)
+                  const receipt = await tx.wait(1)
+                  requestId = await controls.getRequestId()
+                  await expect(
+                      await vrfCoordinatorV2Mock.fulfillRandomWords(requestId, controls.address) // We can DELETE s_requestId from Storage in the contract (if this passes)
+                  ).to.emit(controls, "DiceRolled")
+
+                  territoryAttacking = await data.getTerritories(2)
+                  territoryDefending = await data.getTerritories(13)
+                  console.log("After the battle defending territory has: ", territoryDefending.troops.toNumber())
+                  console.log("After the battle Attacking territory has: ", territoryAttacking.troops.toNumber())
+              })
+              //   it("Territory conquered successful", async function () {
+              //       await player1_connection.deploy(4, 2)
+
+              //       territoryAttacking = await data.getTerritories(2)
+              //       territoryDefending = await data.getTerritories(13)
+              //       console.log("Defending territory has: ", territoryDefending.troops.toNumber())
+              //       console.log("Attacking territory has: ", territoryAttacking.troops.toNumber())
+
+              //       const tx = await player1_connection.attack(2, 13, 3)
+              //       const receipt = await tx.wait(1)
+              //       requestId = await controls.getRequestId()
+              //       await expect(
+              //           await vrfCoordinatorV2Mock.fulfillRandomWords(requestId, controls.address) // We can DELETE s_requestId from Storage in the contract (if this passes)
+              //       ).to.emit(controls, "DiceRolled")
+
+              //       territoryAttacking = await data.getTerritories(2)
+              //       territoryDefending = await data.getTerritories(13)
+              //       console.log("After the first battle defending territory has: ", territoryDefending.troops.toNumber())
+              //       console.log("After the first battle Attacking territory has: ", territoryAttacking.troops.toNumber())
+
+              //       const tx2 = await player1_connection.attack(2, 13, 2)
+              //       const receipt2 = await tx2.wait(1)
+              //       requestId = await controls.getRequestId()
+              //       await expect(
+              //           await vrfCoordinatorV2Mock.fulfillRandomWords(requestId, controls.address) // We can DELETE s_requestId from Storage in the contract (if this passes)
+              //       ).to.emit(controls, "DiceRolled")
+
+              //       territoryAttacking = await data.getTerritories(2)
+              //       territoryDefending = await data.getTerritories(13)
+              //       console.log("After the second battle defending territory has: ", territoryDefending.troops.toNumber())
+              //       console.log("After the second battle Attacking territory has: ", territoryAttacking.troops.toNumber())
+              //   })
           })
       })

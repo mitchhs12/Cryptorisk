@@ -60,18 +60,22 @@ contract Controls is IControls, VRFConsumerBaseV2 {
     uint16 private constant REQUEST_CONFIRMATIONS = 3;
 
     // variables
-    uint256[] s_diceWords;
-    address private main_address;
-    address private data_address;
-    mainAddressSent public s_mainSet;
-    uint8 public s_playerTurn;
-    address payable[] s_playersArray;
-    uint8 public s_troopsToDeploy;
-    uint256 public s_requestId;
-    uint8 s_recentTerritoryAttacking;
-    uint8 s_recentTerritoryBeingAttacked;
     uint256 s_recentAttackingArmies;
     uint256 s_recentDefendingArmies;
+    uint8 s_recentTerritoryAttacking;
+    uint8 s_recentTerritoryBeingAttacked;
+
+    address private main_address;
+    address private data_address;
+
+    mainAddressSent public s_mainSet;
+    uint256 public s_requestId;
+    uint8 public s_troopsToDeploy;
+    uint8 public s_playerTurn;
+
+    address payable[] s_playersArray;
+    uint256[] s_diceWords;
+
     bool s_attackSuccess;
     bool s_gameIsOver;
 
@@ -172,12 +176,12 @@ contract Controls is IControls, VRFConsumerBaseV2 {
         emit PlayerAttacking(s_playersArray[s_playerTurn]);
 
         uint256 defendingArmies = IData(data_address).getTroopCount(territoryAttacking);
-        if (defendingArmies > 2) {
+        if (defendingArmies >= 2) {
             defendingArmies = 2;
         } else {
             defendingArmies = 1;
         }
-        uint8 num_words = getArmies(attackingArmies, defendingArmies);
+        uint8 num_words = getArmies(attackingArmies, defendingArmies); // attackingArmies, defendingArmies not returning correct numbers
         s_recentTerritoryAttacking = territoryOwned;
         s_recentTerritoryBeingAttacked = territoryAttacking;
         s_recentAttackingArmies = attackingArmies;
@@ -197,31 +201,41 @@ contract Controls is IControls, VRFConsumerBaseV2 {
         uint256 territoryBeingAttacked,
         uint256[] memory randomWords
     ) private {
-        // uint8[attackingArmies] memory attackerRolls;
+        console.log("Inside the battle function.");
+
         uint256[] memory attackerRolls = new uint256[](attackingArmies);
         uint256[] memory defenderRolls = new uint256[](defendingArmies);
-        // uint[] memory attackerRolls = new uint[](
-        //         territoriesAssigned[i]
-        //     );
-        // splits the random words into each of the arrays
-        for (uint256 i = 0; i < attackingArmies + defendingArmies; i++) {
+        for (uint256 i = 0; i < (attackingArmies + defendingArmies); i++) {
             if (i < attackingArmies) {
                 attackerRolls[i] = randomWords[i] % 6;
             } else {
-                defenderRolls[i] = randomWords[i] % 6;
+                defenderRolls[i - attackingArmies] = randomWords[i] % 6;
             }
         }
+
         // Sorting the two rolls arrays
         insertionSort(attackerRolls);
         insertionSort(defenderRolls);
+
+        console.log("Attacker die rolls are: ");
+        for (uint256 i = 0; i < attackerRolls.length; i++) {
+            console.log(attackerRolls[i]);
+        }
+        console.log("Defender die rolls are: ");
+        for (uint256 i = 0; i < defenderRolls.length; i++) {
+            console.log(defenderRolls[i]);
+        }
+
         uint256 attacks; // either 1 or 2
         if (attackingArmies > defendingArmies) {
             attacks = defendingArmies;
         } else {
             attacks = attackingArmies;
         }
+        console.log("The number of attacks will be: ", attacks);
         for (uint256 i = 0; i < attacks; i++) {
             if (attackerRolls[i] > defenderRolls[i]) {
+                console.log("The attacker won an attack.");
                 // 3 v 1 , 2 v 1 , 1 v 1, 2 v 2, 2 v 1, 1 v 1 //
                 // attacker wins, defender dies
                 IData(data_address).removeTroopFromTerritory(territoryBeingAttacked);
@@ -243,10 +257,11 @@ contract Controls is IControls, VRFConsumerBaseV2 {
                     } else {
                         emit TransferTroopsAvailable();
                     }
-                } else {
-                    // defender wins
-                    IData(data_address).removeTroopFromTerritory(territoryAttacking);
                 }
+            } else {
+                // defender wins
+                console.log("The defender won an attack.");
+                IData(data_address).removeTroopFromTerritory(territoryAttacking);
             }
         }
     }
@@ -265,6 +280,32 @@ contract Controls is IControls, VRFConsumerBaseV2 {
             IData(data_address).removeTroopFromTerritory(s_recentTerritoryAttacking);
         }
         s_attackSuccess = false;
+    }
+
+    function diceRoller(uint32 num_words) private {
+        s_requestId = i_vrfCoordinator.requestRandomWords(
+            i_gasLane,
+            i_subscriptionId,
+            REQUEST_CONFIRMATIONS,
+            i_callbackGasLimit,
+            num_words
+        );
+        emit RollingDice(s_requestId);
+    }
+
+    function fulfillRandomWords(
+        uint256, /* requestId */
+        uint256[] memory randomWords
+    ) internal override {
+        s_diceWords = randomWords;
+        emit DiceRolled();
+        battle(
+            s_recentAttackingArmies,
+            s_recentDefendingArmies,
+            s_recentTerritoryAttacking,
+            s_recentTerritoryBeingAttacked,
+            randomWords
+        );
     }
 
     function transferTroops(
@@ -298,36 +339,6 @@ contract Controls is IControls, VRFConsumerBaseV2 {
 
         next_player();
         return true;
-    }
-
-    function push_to_territories(uint8 playerAwarded) external onlyMain {
-        IData(data_address).pushToTerritories(playerAwarded);
-    }
-
-    function diceRoller(uint32 num_words) private {
-        s_requestId = i_vrfCoordinator.requestRandomWords(
-            i_gasLane,
-            i_subscriptionId,
-            REQUEST_CONFIRMATIONS,
-            i_callbackGasLimit,
-            num_words
-        );
-        emit RollingDice(s_requestId);
-    }
-
-    function fulfillRandomWords(
-        uint256, /* requestId */
-        uint256[] memory randomWords
-    ) internal override {
-        s_diceWords = randomWords;
-        emit DiceRolled();
-        battle(
-            s_recentTerritoryAttacking,
-            s_recentTerritoryBeingAttacked,
-            s_recentAttackingArmies,
-            s_recentDefendingArmies,
-            randomWords
-        );
     }
 
     function validate_owner(uint8 territory_clicked) internal returns (bool) {
@@ -437,18 +448,22 @@ contract Controls is IControls, VRFConsumerBaseV2 {
         return s_requestId;
     }
 
+    function push_to_territories(uint8 playerAwarded) external onlyMain {
+        IData(data_address).pushToTerritories(playerAwarded);
+    }
+
     function insertionSort(uint256[] memory arr) private pure {
         uint256 i;
         uint256 key;
-        uint256 j;
+        int256 j;
         for (i = 1; i < arr.length; i++) {
             key = arr[i];
-            j = i - 1;
-            while (j >= 0 && arr[j] < key) {
-                arr[j + 1] = arr[j];
+            j = int256(i - 1);
+            while (j >= 0 && arr[uint256(j)] < key) {
+                arr[uint256(j + 1)] = arr[uint256(j)];
                 j = j - 1;
             }
-            arr[j + 1] = key;
+            arr[uint256(j + 1)] = key;
         }
     }
 }
