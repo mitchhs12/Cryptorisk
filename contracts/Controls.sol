@@ -149,8 +149,11 @@ contract Controls is IControls, VRFConsumerBaseV2 {
     }
 
     function deploy_control(uint8 amountToDeploy, uint8 location) external onlyMain returns (bool) {
+        console.log("We have: ", s_troopsToDeploy, "troops to deploy");
+        console.log("Inside deploy_control, deploying ", amountToDeploy, " troops, at territory ", location);
         emit PlayerDeploying(s_playersArray[s_playerTurn]);
         for (uint256 i = 0; i < amountToDeploy; i++) {
+            console.log("deploying loop: ", i);
             IData(data_address).addTroopToTerritory(location);
         }
         s_troopsToDeploy -= amountToDeploy;
