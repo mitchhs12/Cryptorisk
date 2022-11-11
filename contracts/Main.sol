@@ -234,12 +234,17 @@ contract Main is VRFConsumerBaseV2 {
     function deploy(uint8 amountToDeploy, uint8 location) public onlyPlayer {
         console.log("deploying");
         require(s_gameState == GameState.DEPLOY, "It is currently not deploy phase!");
+        console.log("at end of deploy function");
         require(
             amountToDeploy <= IControls(controls_address).get_troops_to_deploy(),
             "You do not have that many troops to deploy!"
         );
-        require(IControls(controls_address).deploy_control(amountToDeploy, location), "Your deployment failed!");
-        s_gameState = GameState.ATTACK;
+        console.log("at end of deploy function");
+        bool troopsLeft = IControls(controls_address).deploy_control(amountToDeploy, location);
+        console.log("at end of deploy function");
+        if (troopsLeft == false) {
+            s_gameState = GameState.ATTACK;
+        }
     }
 
     function attack(

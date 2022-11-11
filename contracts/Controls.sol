@@ -149,7 +149,7 @@ contract Controls is IControls, VRFConsumerBaseV2 {
     }
 
     function deploy_control(uint8 amountToDeploy, uint8 location) external onlyMain returns (bool) {
-        require(IData(data_address).getTerritoryOwner(location) == s_playerTurn);
+        require(IData(data_address).getTerritoryOwner(location) == s_playerTurn, "You do not own this territory");
         console.log("We have: ", s_troopsToDeploy, "troops to deploy");
         console.log("Inside deploy_control, deploying ", amountToDeploy, " troops, at territory ", location);
         emit PlayerDeploying(s_playersArray[s_playerTurn]);
@@ -157,10 +157,11 @@ contract Controls is IControls, VRFConsumerBaseV2 {
             IData(data_address).addTroopToTerritory(location);
         }
         s_troopsToDeploy -= amountToDeploy;
+        console.log(s_troopsToDeploy);
         if (s_troopsToDeploy == 0) {
-            return true; // returns true if all troops are deployed
+            return false; // returns false if all troops have not been deployed
         }
-        return false;
+        return true;
     }
 
     function attack_control(

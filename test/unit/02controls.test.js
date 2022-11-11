@@ -273,8 +273,8 @@ const { Contract } = require("ethers")
                   await controls.connect(player1).troopTransferAfterAttack(3)
                   await player1_connection.finishAttack()
                   await player1_connection.fortify(2, 13, 1) // moves 1 troop from territory 2 to territory 3 -- territory 2 now has 1 troop left
-                  await player2_connection.deploy(2, 17)
-                  // await expect(player1_connection.deploy(3, 13)).to.be.reverted
+                  await player2_connection.deploy(2, 19)
+                  await expect(player1_connection.deploy(3, 13)).to.be.reverted
               })
           })
       })
