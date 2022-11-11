@@ -37,6 +37,8 @@ interface IControls {
     function get_troops_to_deploy() external view returns (uint8);
 
     function getPlayerTurn() external view returns (address);
+
+    function getAttackStatus() external view returns (bool);
 }
 
 contract Main is VRFConsumerBaseV2 {
@@ -121,6 +123,7 @@ contract Main is VRFConsumerBaseV2 {
 
     modifier onlyPlayer() {
         require(msg.sender == IControls(controls_address).getPlayerTurn());
+        console.log("player_turn", IControls(controls_address).getPlayerTurn());
         _;
     }
 
@@ -229,9 +232,12 @@ contract Main is VRFConsumerBaseV2 {
     }
 
     function deploy(uint8 amountToDeploy, uint8 location) public onlyPlayer {
+        console.log("deploying");
         require(s_gameState == GameState.DEPLOY, "It is currently not deploy phase!");
-        require(amountToDeploy <= IControls(controls_address).get_troops_to_deploy(), "You do not have enough troops!");
-
+        require(
+            amountToDeploy <= IControls(controls_address).get_troops_to_deploy(),
+            "You do not have that many troops to deploy!"
+        );
         require(IControls(controls_address).deploy_control(amountToDeploy, location), "Your deployment failed!");
         s_gameState = GameState.ATTACK;
     }
@@ -241,12 +247,14 @@ contract Main is VRFConsumerBaseV2 {
         uint8 territoryAttacking,
         uint256 troopQuantity
     ) public onlyPlayer {
+        require(IControls(controls_address).getAttackStatus() == false);
         require(s_gameState == GameState.ATTACK, "It is currently not attack phase!");
         IControls(controls_address).attack_control(territoryOwned, territoryAttacking, troopQuantity);
     }
 
     // player clicks this button when they have finished attacking
     function finishAttack() public onlyPlayer {
+        require(IControls(controls_address).getAttackStatus() == false);
         s_gameState = GameState.FORTIFY;
     }
 
@@ -255,9 +263,11 @@ contract Main is VRFConsumerBaseV2 {
         uint8 territoryMovingTo,
         uint256 troopsMoving
     ) public onlyPlayer {
+        console.log("inside main");
         require(s_gameState == GameState.FORTIFY, "It is currently not fortify phase!");
+        console.log("here");
         require(
-            IControls(controls_address).fortify_control(territoryMovingFrom, territoryMovingTo, troopsMoving),
+            IControls(controls_address).fortify_control(territoryMovingFrom, territoryMovingTo, troopsMoving) == true,
             "Your fortification attempt failed"
         );
         s_gameState = GameState.DEPLOY;
