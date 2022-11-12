@@ -34,6 +34,19 @@ const { BytesLike, parseEther } = require("ethers/lib/utils")
                   const lobbyState = await main.getLobbyState()
                   assert.equal(lobbyState.toString(), "0")
               })
+              it("Checks the entraceFee is set correctly", async function () {
+                  const entranceFee = await main.getEntranceFee()
+                  console.log(entranceFee)
+                  assert.equal(entranceFee.toString(), ethers.utils.parseEther("0.1"))
+              })
+              it("checks that a player can only enter the lobby once", async function () {
+                  const entranceFee = await main.getEntranceFee()
+                  await player1_connection.enterLobby({ value: entranceFee })
+                  await player2_connection.enterLobby({ value: entranceFee })
+                  await expect(player1_connection.enterLobby({ value: entranceFee })).to.be.revertedWith(
+                      "You've already entered the game!"
+                  )
+              })
           })
           describe("enterLobby", function () {
               it("reverts when you don't pay enough", async function () {

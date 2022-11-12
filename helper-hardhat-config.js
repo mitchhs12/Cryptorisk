@@ -1,4 +1,4 @@
-const { ethers, hardhatArguments } = require("hardhat");
+const { ethers, hardhatArguments } = require("hardhat")
 
 const networkConfig = {
     default: {
@@ -16,7 +16,7 @@ const networkConfig = {
         name: "localhost",
         subscriptionId: "1",
         gasLane: "0x79d3d8832d904592c0bf9818b621522c988bb8b0c05cdc3b15aea1b6e8db0c15", // 30 gwei
-        lobbyEntranceFee: ethers.utils.parseEther("0.1"), //0.1 ETH
+        lobbyEntranceFee: "100000000000000000", //0.1 ETH
         callbackGasLimit: "3000000", //3,000,000 gas
     },
     43113: {
@@ -28,11 +28,11 @@ const networkConfig = {
         subscriptionId: "143",
         callbackGasLimit: "3000000", //500,000 gas
     },
-};
+}
 
-const developmentChains = ["hardhat", "localhost"];
+const developmentChains = ["hardhat", "localhost"]
 
 module.exports = {
     networkConfig,
     developmentChains,
-};
+}

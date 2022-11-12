@@ -84,6 +84,7 @@ contract Main is VRFConsumerBaseV2 {
     address payable[] public s_players;
     address public player_turn;
     mainAddressSent public s_mainSet;
+    mapping(address => bool) public duplicateAddresses;
 
     /* Events */
     event RequestedTerritoryRandomness(uint256 indexed requestId);
@@ -137,8 +138,10 @@ contract Main is VRFConsumerBaseV2 {
     function enterLobby() public payable {
         require(msg.value >= i_entranceFee, "Send More to Enter Lobby");
         require(s_lobbyState == LobbyState.OPEN, "Lobby is full"); // require or if statement?
+        require(duplicateAddresses[msg.sender] == false, "You've already entered the game!");
         s_players.push(payable(msg.sender));
         emit PlayerJoinedLobby(msg.sender);
+        duplicateAddresses[msg.sender] = true;
         if (s_players.length == 4) {
             s_lobbyState = LobbyState.CLOSED;
             emit GameStarting();
