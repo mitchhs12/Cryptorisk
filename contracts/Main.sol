@@ -2,7 +2,6 @@
 pragma solidity ^0.8.7;
 import "@chainlink/contracts/src/v0.8/interfaces/VRFCoordinatorV2Interface.sol";
 import "@chainlink/contracts/src/v0.8/VRFConsumerBaseV2.sol";
-import "hardhat/console.sol";
 
 /**@title Cryptorisk Main Contract
  * @author Michael King and Mitchell Spencer
@@ -125,7 +124,6 @@ contract Main is VRFConsumerBaseV2 {
 
     modifier onlyPlayer() {
         require(msg.sender == IControls(controls_address).getPlayerTurn());
-        console.log("player_turn", IControls(controls_address).getPlayerTurn());
         _;
     }
 
@@ -238,16 +236,12 @@ contract Main is VRFConsumerBaseV2 {
     }
 
     function deploy(uint8 amountToDeploy, uint8 location) public onlyPlayer {
-        console.log("deploying");
         require(s_gameState == GameState.DEPLOY, "It is currently not deploy phase!");
-        console.log("at end of deploy function");
         require(
             amountToDeploy <= IControls(controls_address).get_troops_to_deploy(),
             "You do not have that many troops to deploy!"
         );
-        console.log("at end of deploy function");
         bool troopsLeft = IControls(controls_address).deploy_control(amountToDeploy, location);
-        console.log("at end of deploy function");
         if (troopsLeft == false) {
             s_gameState = GameState.ATTACK;
         }
@@ -274,9 +268,7 @@ contract Main is VRFConsumerBaseV2 {
         uint8 territoryMovingTo,
         uint256 troopsMoving
     ) public onlyPlayer {
-        console.log("inside main");
         require(s_gameState == GameState.FORTIFY, "It is currently not fortify phase!");
-        console.log("here");
         require(
             IControls(controls_address).fortify_control(territoryMovingFrom, territoryMovingTo, troopsMoving) == true,
             "Your fortification attempt failed"

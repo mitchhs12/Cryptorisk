@@ -1,25 +1,25 @@
-require("solidity-coverage");
-require("hardhat-gas-reporter");
-require("@nomicfoundation/hardhat-toolbox");
-require("dotenv").config();
-require("@nomiclabs/hardhat-ethers");
-require("@nomicfoundation/hardhat-chai-matchers");
-require("hardhat-deploy");
+require("solidity-coverage")
+require("hardhat-gas-reporter")
+require("@nomicfoundation/hardhat-toolbox")
+require("dotenv").config()
+require("@nomiclabs/hardhat-ethers")
+require("@nomicfoundation/hardhat-chai-matchers")
+require("hardhat-deploy")
 /**
  * @type import('hardhat/config').HardhatUserConfig
  */
 
-const MAINNET_RPC_URL = process.env.MAINNET_RPC_URL;
-const KOVAN_RPC_URL = process.env.KOVAN_RPC_URL;
-const POLYGON_MAINNET_RPC_URL = process.env.POLYGON_MAINNET_RPC_URL;
-const AVALANCHE_TESTNET_RPC_URL = process.env.AVALANCHE_TESTNET_RPC_URL;
-const GOERLI_RPC_URL = process.env.GOERLI_RPC_URL;
-const PRIVATE_KEY = process.env.PRIVATE_KEY;
+const MAINNET_RPC_URL = process.env.MAINNET_RPC_URL
+const KOVAN_RPC_URL = process.env.KOVAN_RPC_URL
+const POLYGON_MAINNET_RPC_URL = process.env.POLYGON_MAINNET_RPC_URL
+const AVALANCHE_TESTNET_RPC_URL = process.env.AVALANCHE_TESTNET_RPC_URL
+const GOERLI_RPC_URL = process.env.GOERLI_RPC_URL
+const PRIVATE_KEY = process.env.PRIVATE_KEY
 // optional
-const MNEMONIC = process.env.MNEMONIC || "your mnemonic";
-const ETHERSCAN_API_KEY = process.env.ETHERSCAN_API_KEY || "Your etherscan API key";
-const POLYGONSCAN_API_KEY = process.env.POLYGONSCAN_API_KEY || "Your polygonscan API key";
-const REPORT_GAS = process.env.REPORT_GAS;
+const MNEMONIC = process.env.MNEMONIC || "your mnemonic"
+const ETHERSCAN_API_KEY = process.env.ETHERSCAN_API_KEY || "Your etherscan API key"
+const POLYGONSCAN_API_KEY = process.env.POLYGONSCAN_API_KEY || "Your polygonscan API key"
+const REPORT_GAS = process.env.REPORT_GAS
 
 module.exports = {
     defaultNetwork: "hardhat",
@@ -38,12 +38,12 @@ module.exports = {
         //     saveDeployments: true,
         //     chainId: 42,
         // },
-        goerli: {
-            url: GOERLI_RPC_URL,
-            accounts: PRIVATE_KEY !== undefined ? [PRIVATE_KEY] : [],
-            saveDeployments: true,
-            chainId: 5,
-        },
+        // goerli: {
+        //     url: GOERLI_RPC_URL,
+        //     accounts: PRIVATE_KEY !== undefined ? [PRIVATE_KEY] : [],
+        //     saveDeployments: true,
+        //     chainId: 5,
+        // },
         // mainnet: {
         //     url: MAINNET_RPC_URL,
         //     accounts: PRIVATE_KEY !== undefined ? [PRIVATE_KEY] : [],
@@ -56,13 +56,13 @@ module.exports = {
         //     saveDeployments: true,
         //     chainId: 137,
         // },
-        // fuji: {
-        //     url: AVALANCHE_TESTNET_RPC_URL,
-        //     accounts: PRIVATE_KEY !== undefined ? [PRIVATE_KEY] : [],
-        //     saveDeployments: true,
-        //     chainId: 43113,
-        //     gasPrice: 225000000000,
-        // },
+        fuji: {
+            url: AVALANCHE_TESTNET_RPC_URL,
+            accounts: PRIVATE_KEY !== undefined ? [PRIVATE_KEY] : [],
+            saveDeployments: true,
+            chainId: 43113,
+            //gasPrice: 225000000000,
+        },
     },
     etherscan: {
         apiKey: {
@@ -101,4 +101,4 @@ module.exports = {
     mocha: {
         timeout: 200000, // 200 seconds max for running tests
     },
-};
+}

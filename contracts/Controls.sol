@@ -3,7 +3,6 @@ pragma solidity ^0.8.7;
 
 import "@chainlink/contracts/src/v0.8/interfaces/VRFCoordinatorV2Interface.sol";
 import "@chainlink/contracts/src/v0.8/VRFConsumerBaseV2.sol";
-import "hardhat/console.sol";
 import "./Main.sol";
 
 interface IData {
@@ -150,14 +149,11 @@ contract Controls is IControls, VRFConsumerBaseV2 {
 
     function deploy_control(uint8 amountToDeploy, uint8 location) external onlyMain returns (bool) {
         require(IData(data_address).getTerritoryOwner(location) == s_playerTurn, "You do not own this territory");
-        console.log("We have: ", s_troopsToDeploy, "troops to deploy");
-        console.log("Inside deploy_control, deploying ", amountToDeploy, " troops, at territory ", location);
         emit PlayerDeploying(s_playersArray[s_playerTurn]);
         for (uint256 i = 0; i < amountToDeploy; i++) {
             IData(data_address).addTroopToTerritory(location);
         }
         s_troopsToDeploy -= amountToDeploy;
-        console.log(s_troopsToDeploy);
         if (s_troopsToDeploy == 0) {
             return false; // returns false if all troops have not been deployed
         }
@@ -205,8 +201,6 @@ contract Controls is IControls, VRFConsumerBaseV2 {
         uint256 territoryBeingAttacked,
         uint256[] memory randomWords
     ) private {
-        console.log("Inside the battle function.");
-
         uint256[] memory attackerRolls = new uint256[](attackingArmies);
         uint256[] memory defenderRolls = new uint256[](defendingArmies);
         for (uint256 i = 0; i < (attackingArmies + defendingArmies); i++) {
@@ -221,14 +215,8 @@ contract Controls is IControls, VRFConsumerBaseV2 {
         insertionSort(attackerRolls);
         insertionSort(defenderRolls);
 
-        console.log("Attacker die rolls are: ");
-        for (uint256 i = 0; i < attackerRolls.length; i++) {
-            console.log(attackerRolls[i]);
-        }
-        console.log("Defender die rolls are: ");
-        for (uint256 i = 0; i < defenderRolls.length; i++) {
-            console.log(defenderRolls[i]);
-        }
+        for (uint256 i = 0; i < attackerRolls.length; i++) {}
+        for (uint256 i = 0; i < defenderRolls.length; i++) {}
 
         uint256 attacks; // either 1 or 2
         if (attackingArmies > defendingArmies) {
@@ -236,17 +224,11 @@ contract Controls is IControls, VRFConsumerBaseV2 {
         } else {
             attacks = attackingArmies;
         }
-        console.log("The number of attacks will be: ", attacks);
         for (uint256 i = 0; i < attacks; i++) {
             if (attackerRolls[i] > defenderRolls[i]) {
-                console.log("The attacker won an attack.");
                 // 3 v 1 , 2 v 1 , 1 v 1, 2 v 2, 2 v 1, 1 v 1 //
                 // attacker wins, defender dies
                 IData(data_address).removeTroopFromTerritory(territoryBeingAttacked);
-                console.log(
-                    "troops left in defedning territory: ",
-                    IData(data_address).getTroopCount(territoryBeingAttacked)
-                );
                 if (
                     // Attacker has killed all troops in the defending territory
                     IData(data_address).getTroopCount(territoryBeingAttacked) == 0
@@ -267,12 +249,10 @@ contract Controls is IControls, VRFConsumerBaseV2 {
                         s_gameIsOver = true;
                     } else {
                         emit TransferTroopsAvailable(territoryBeingAttacked);
-                        console.log("can transfer troops to", territoryBeingAttacked);
                     }
                 }
             } else {
                 // defender wins
-                console.log("The defender won an attack.");
                 IData(data_address).removeTroopFromTerritory(territoryAttacking);
             }
         }
@@ -341,7 +321,6 @@ contract Controls is IControls, VRFConsumerBaseV2 {
         uint8 territoryMovingTo,
         uint256 troopsMoving
     ) external onlyMain returns (bool) {
-        console.log("inside fortify_control");
         //need to add parameters
         emit PlayerFortifying(s_playersArray[s_playerTurn]);
         require(
@@ -365,11 +344,6 @@ contract Controls is IControls, VRFConsumerBaseV2 {
 
     function validateFortifiable(uint8 territoryMovingFrom, uint8 territoryMovingTo) internal returns (bool) {
         require(IData(data_address).getTroopCount(territoryMovingFrom) > 1, "You must have more than 1 troop to move!");
-        console.log(territoryMovingFrom, territoryMovingTo);
-        console.log(
-            IData(data_address).getTerritoryOwner(territoryMovingFrom),
-            IData(data_address).getTerritoryOwner(territoryMovingTo)
-        );
         require(
             validate_owner(territoryMovingFrom) && validate_owner(territoryMovingTo),
             "You must own both territories to move troops!"
