@@ -25,7 +25,7 @@ const networkConfig = {
         lobbyEntranceFee: "100000000000000000",
         url: "https://api.avax-test.network/ext/bc/C/rpc",
         gasLane: "0x354d2f95da55398f44b7cff77da56283d9c6c829a4bdf1bbcaf2ad6a4d081f61",
-        subscriptionId: "143",
+        subscriptionId: "479",
         callbackGasLimit: "3000000", //500,000 gas
     },
 }

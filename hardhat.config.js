@@ -61,7 +61,7 @@ module.exports = {
             accounts: PRIVATE_KEY !== undefined ? [PRIVATE_KEY] : [],
             saveDeployments: true,
             chainId: 43113,
-            //gasPrice: 225000000000,
+            gasPrice: 225000000000,
         },
     },
     etherscan: {

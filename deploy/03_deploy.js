@@ -33,8 +33,8 @@ module.exports = async function ({ getNamedAccounts, deployments }) {
         networkConfig[chainId]["gasLane"],
         networkConfig[chainId]["callbackGasLimit"],
         networkConfig[chainId]["lobbyEntranceFee"],
-        controlsAddress,
-        dataAddress,
+        "0x47A5Ffd0267c67A037fc10C231b91bF42b6DeF44",
+        "0x5FbDB2315678afecb367f032d93F642f64180aa3",
     ]
     const main = await deploy("Main", {
         from: deployer,
