@@ -85,6 +85,7 @@ contract Main is VRFConsumerBaseV2 {
     address public player_turn;
     mainAddressSent public s_mainSet;
     mapping(address => bool) public duplicateAddresses;
+    address payable[] public s_lobbyEntrants;
 
     /* Events */
     event RequestedTerritoryRandomness(uint256 indexed requestId);
@@ -131,6 +132,7 @@ contract Main is VRFConsumerBaseV2 {
     modifier onlyControls() {
         require(msg.sender == controls_address);
         _;
+        //testttt
     }
 
     /* Functions */
@@ -140,6 +142,7 @@ contract Main is VRFConsumerBaseV2 {
         require(s_lobbyState == LobbyState.OPEN, "Lobby is full"); // require or if statement?
         require(duplicateAddresses[msg.sender] == false, "You've already entered the game!");
         s_players.push(payable(msg.sender));
+        s_lobbyEntrants.push(payable(msg.sender));
         emit PlayerJoinedLobby(msg.sender);
         duplicateAddresses[msg.sender] = true;
         if (s_players.length == 4) {
@@ -343,6 +346,9 @@ contract Main is VRFConsumerBaseV2 {
         s_players = new address payable[](0);
         s_gameState = GameState.INACTIVE;
         territoriesAssigned = [0, 0, 0, 0];
+        for (uint256 i = 0; i < s_lobbyEntrants.length; i++) {
+            duplicateAddresses[s_lobbyEntrants[i]] = false;
+        }
         emit MainReset();
     }
 }
