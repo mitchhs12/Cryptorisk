@@ -22,7 +22,6 @@ module.exports = async function ({ getNamedAccounts, deployments }) {
         const data = await ethers.getContract("Data")
         controlsAddress = controls.address
         dataAddress = data.address
-        controlsAddress = controls.address
         //0x47A5Ffd0267c67A037fc10C231b91bF42b6DeF44
         //0x5FbDB2315678afecb367f032d93F642f64180aa3
     } else {
@@ -48,6 +47,10 @@ module.exports = async function ({ getNamedAccounts, deployments }) {
     log("Main Deployed!")
     log("----------")
 
+    if (developmentChains.includes(network.name)) {
+        const vrfCoordinatorV2Mock = await ethers.getContract("VRFCoordinatorV2Mock")
+        await vrfCoordinatorV2Mock.addConsumer(subscriptionId, main.address)
+    }
     if (!developmentChains.includes(network.name) && process.env.SNOWTRACE_API_KEY) {
         log("Verifying")
         await verify(main.address, mainArgs)

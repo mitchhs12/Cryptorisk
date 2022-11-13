@@ -33,13 +33,8 @@ const { Contract } = require("ethers")
               const tx = await player4_connection.enterLobby({ value: entranceFee })
               const receipt = await tx.wait(1)
               const firstId = receipt.events[3].args.requestId
-              const tx2 = await vrfCoordinatorV2Mock.fulfillRandomWords(firstId, main.address)
-              const receipt2 = await tx2.wait(1)
-              const secondId = receipt2.events[1].args.requestId
-              await vrfCoordinatorV2Mock.fulfillRandomWords(secondId, main.address)
-          })
-          describe("SetMain function", function () {
-              it("Only one person can call main", async function () {})
+              await vrfCoordinatorV2Mock.fulfillRandomWords(firstId, main.address)
+              await main.performUpkeep([])
           })
           describe("Main can call controls", function () {
               it("Sets to player1 turn in Main", async function () {

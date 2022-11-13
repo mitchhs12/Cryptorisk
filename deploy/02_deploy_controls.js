@@ -41,6 +41,11 @@ module.exports = async function ({ getNamedAccounts, deployments }) {
     log("Controls Deployed!")
     log("----------")
 
+    if (developmentChains.includes(network.name)) {
+        const vrfCoordinatorV2Mock = await ethers.getContract("VRFCoordinatorV2Mock")
+        await vrfCoordinatorV2Mock.addConsumer(subscriptionId, controls.address)
+        log("Controls consumer is added")
+    }
     if (!developmentChains.includes(network.name) && process.env.SNOWTRACE_API_KEY) {
         log("Verifying")
         await verify(controls.address, mainArgs)

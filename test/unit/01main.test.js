@@ -140,16 +140,23 @@ const { BytesLike, parseEther } = require("ethers/lib/utils")
                   const tx = await player4_connection.enterLobby({ value: entranceFee })
                   const receipt = await tx.wait(1)
                   requestId = receipt.events[3].args.requestId
-                  //   await expect(vrfCoordinatorV2Mock.fulfillRandomWords(requestId, main.address)).to.emit(
-                  //       main,
-                  //       "gotRandomness"
-                  //   )
-                  console.log("First random word:", randomWord0.toString())
-
-                  for (let i = 0; i < 42; i++) {
-                      const randomWord0 = await main.getRandomWordsArrayIndex(i)
-                      console.log("First random word:", randomWord0.toString())
-                  }
+                  await expect(vrfCoordinatorV2Mock.fulfillRandomWords(requestId, main.address)).to.emit(
+                      main,
+                      "gotRandomness"
+                  )
+              })
+              it("performs upkeep", async function () {
+                  await player1_connection.enterLobby({ value: entranceFee })
+                  await player2_connection.enterLobby({ value: entranceFee })
+                  await player3_connection.enterLobby({ value: entranceFee })
+                  const tx = await player4_connection.enterLobby({ value: entranceFee })
+                  const receipt = await tx.wait(1)
+                  const requestId = receipt.events[3].args.requestId
+                  await expect(vrfCoordinatorV2Mock.fulfillRandomWords(requestId, main.address)).to.emit(
+                      main,
+                      "gotRandomness"
+                  )
+                  await main.performUpkeep([])
               })
           })
           describe("It assigns the territory correctly", function () {
@@ -164,6 +171,7 @@ const { BytesLike, parseEther } = require("ethers/lib/utils")
                       main,
                       "gotRandomness"
                   )
+                  await main.performUpkeep([])
                   let territory
                   let territoriesOwnedBy0 = 0
                   let territoriesOwnerBy1 = 0
@@ -174,6 +182,7 @@ const { BytesLike, parseEther } = require("ethers/lib/utils")
                   let troopsOwnedBy1 = 0
                   let troopsOwnedBy2 = 0
                   let troopsOwnedBy3 = 0
+                  troopTotal = 0
                   for (let i = 0; i < 42; i++) {
                       territory = await data.getTerritories(i)
                       console.log(
@@ -217,10 +226,11 @@ const { BytesLike, parseEther } = require("ethers/lib/utils")
                   const tx = await player4_connection.enterLobby({ value: entranceFee })
                   const receipt = await tx.wait(1)
                   const firstId = receipt.events[3].args.requestId
-                  await expect(await vrfCoordinatorV2Mock.fulfillRandomWords(firstId, main.address)).to.emit(
+                  await expect(vrfCoordinatorV2Mock.fulfillRandomWords(requestId, main.address)).to.emit(
                       main,
-                      "GameSetupComplete"
+                      "gotRandomness"
                   )
+                  await expect(await main.performUpkeep([])).to.emit(main, "GameSetupComplete")
               })
           })
       })
