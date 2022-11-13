@@ -4,6 +4,7 @@ pragma solidity ^0.8.7;
 import "@chainlink/contracts/src/v0.8/interfaces/VRFCoordinatorV2Interface.sol";
 import "@chainlink/contracts/src/v0.8/VRFConsumerBaseV2.sol";
 import "./Main.sol";
+import "hardhat/console.sol";
 
 interface IData {
     function initializeContinents() external;
@@ -108,6 +109,7 @@ contract Controls is IControls, VRFConsumerBaseV2 {
     }
 
     function set_main_address(address main) external {
+        console.log("Hello");
         require(s_mainSet == mainAddressSent.FALSE);
         emit ReceivedMain(main);
         main_address = main;

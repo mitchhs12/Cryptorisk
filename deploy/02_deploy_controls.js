@@ -18,8 +18,8 @@ module.exports = async function ({ getNamedAccounts, deployments }) {
         subscriptionId = txReceipt.events[0].args.subId
         await vrfCoordinatorV2Mock.fundSubscription(subscriptionId, VRF_SUB_FUND_AMOUNT)
         const data = await ethers.getContract("Data")
-        //dataAddress = data.address
-        dataAddress = "0x38Fea5914DF09bA507CE3cca097Da0B0eDE59090"
+        dataAddress = data.address
+        //dataAddress = "0x38Fea5914DF09bA507CE3cca097Da0B0eDE59090"
     } else {
         vrfCoordinatorV2Address = networkConfig[chainId]["vrfCoordinatorV2"]
         subscriptionId = networkConfig[chainId]["subscriptionId"]

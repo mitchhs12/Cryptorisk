@@ -2,6 +2,7 @@
 pragma solidity ^0.8.7;
 
 import "./Controls.sol";
+import "hardhat/console.sol";
 
 contract Data is IData {
     event ReceivedControls(address indexed controls);

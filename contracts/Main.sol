@@ -2,6 +2,7 @@
 pragma solidity ^0.8.7;
 import "@chainlink/contracts/src/v0.8/interfaces/VRFCoordinatorV2Interface.sol";
 import "@chainlink/contracts/src/v0.8/VRFConsumerBaseV2.sol";
+import "hardhat/console.sol";
 
 /**@title Cryptorisk Main Contract
  * @author Michael King and Mitchell Spencer
@@ -152,8 +153,11 @@ contract Main is VRFConsumerBaseV2 {
 
     // call this function as soon as contract is deployed
     function setMainAddress() public {
+        console.log("Hello");
         require(s_mainSet == mainAddressSent.FALSE, "Controls contract has already received Main address");
+        console.log("Hello");
         IControls(controls_address).set_main_address(address(this));
+        console.log("Hello");
         s_mainSet = mainAddressSent.TRUE;
     }
 
