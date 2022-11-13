@@ -29,7 +29,7 @@ module.exports = async function ({ getNamedAccounts, deployments }) {
         subscriptionId,
         networkConfig[chainId]["gasLane"],
         networkConfig[chainId]["callbackGasLimit"],
-        "0x38Fea5914DF09bA507CE3cca097Da0B0eDE59090",
+        dataAddress,
     ]
     const controls = await deploy("Controls", {
         from: deployer,

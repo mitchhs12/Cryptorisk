@@ -3,6 +3,7 @@ pragma solidity ^0.8.7;
 import "@chainlink/contracts/src/v0.8/interfaces/VRFCoordinatorV2Interface.sol";
 import "@chainlink/contracts/src/v0.8/VRFConsumerBaseV2.sol";
 import "hardhat/console.sol";
+import "@openzeppelin/contracts/utils/Strings.sol";
 
 /**@title Cryptorisk Main Contract
  * @author Michael King and Mitchell Spencer
@@ -75,7 +76,7 @@ contract Main is VRFConsumerBaseV2 {
     uint256 private immutable i_entranceFee;
     address private immutable controls_address;
     address private immutable data_address;
-
+    uint8[] private playerSelection = [0, 1, 2, 3];
     uint8[4] private territoriesAssigned = [0, 0, 0, 0]; // Used to track if player receives enough territory.
     uint256[] s_randomWordsArray;
     TerritoryState public s_territoryState;
@@ -86,11 +87,11 @@ contract Main is VRFConsumerBaseV2 {
     mainAddressSent public s_mainSet;
     mapping(address => bool) public duplicateAddresses;
     address payable[] public s_lobbyEntrants;
+    uint256[] s_randomWordsArrayTroops;
 
     /* Events */
-    event RequestedTerritoryRandomness(uint256 indexed requestId);
-    event RequestedTroopRandomness(uint256 indexed requestId);
-    event ReceivedRandomWords();
+    event RequestedRandomness(uint256 indexed requestId);
+    event gotRandomness();
     event GameSetupComplete();
     event PlayerJoinedLobby(address indexed player);
     event GameStarting();
@@ -147,32 +148,86 @@ contract Main is VRFConsumerBaseV2 {
         if (s_players.length == 4) {
             s_lobbyState = LobbyState.CLOSED;
             emit GameStarting();
-            requestRandomness(42);
+            requestRandomness();
         }
     }
 
     // call this function as soon as contract is deployed
     function setMainAddress() public {
-        console.log("Hello");
         require(s_mainSet == mainAddressSent.FALSE, "Controls contract has already received Main address");
-        console.log("Hello");
         IControls(controls_address).set_main_address(address(this));
-        console.log("Hello");
         s_mainSet = mainAddressSent.TRUE;
     }
 
-    function requestRandomness(uint32 num_words) private {
+    function requestRandomness() private {
         uint256 requestId = i_vrfCoordinator.requestRandomWords(
             i_gasLane,
             i_subscriptionId,
             REQUEST_CONFIRMATIONS,
             i_callbackGasLimit,
-            num_words
+            2
         );
-        if (s_territoryState == TerritoryState.COMPLETE) {
-            emit RequestedTroopRandomness(requestId);
-        } else {
-            emit RequestedTerritoryRandomness(requestId);
+        emit RequestedRandomness(requestId);
+    }
+
+    function numDigits(uint256 number) public pure returns (uint256) {
+        uint256 digits = 0;
+        //if (number < 0) digits = 1; // enable this line if '-' counts as a digit
+        while (number != 0) {
+            number /= 10;
+            digits++;
+        }
+        return digits;
+    }
+
+    function getDigitAtIndex(uint256 n, uint256 index) public pure returns (uint256) {
+        return (n / (10**index)) % 10;
+    }
+
+    function getRandomWordsArrayTerritories(uint256 specifiedLength, uint256 randomWord) private {
+        uint256 randomLength = numDigits(randomWord);
+        uint256 num;
+        uint256 index = 0;
+        uint256 i = 0;
+        s_randomWordsArray;
+        while (i < specifiedLength) {
+            num = getDigitAtIndex(randomWord, index);
+            if (num < 8) {
+                s_randomWordsArray.push(num % 4);
+                i++;
+            }
+            if (index == randomLength - 1) {
+                index = 0;
+            }
+            index++;
+        }
+    }
+
+    function getRandomWordsArrayTroops(uint256 specifiedLength, uint256 randomWord) private {
+        console.log(randomWord);
+        uint256 randomLength = numDigits(randomWord);
+        console.log("length of randomWord", randomLength);
+        console.log("length of randomWordsArrayTroops", s_randomWordsArrayTroops.length);
+        uint256 num;
+        uint256 num2;
+        uint256 index = 0;
+        uint256 i = 0;
+        // s_randomWordsArrayTroops;
+        while (i < specifiedLength) {
+            num = getDigitAtIndex(randomWord, index);
+            console.log("num is: ", num);
+            num2 = getDigitAtIndex(randomWord, index + 1);
+            console.log("num2 is: ", num2);
+            num = num + num2 * 10;
+            console.log(num);
+            s_randomWordsArray.push(num);
+            console.log("i is: ", i);
+            console.log("index is: ", index);
+            i++;
+            if (index == randomLength - 2) {
+                index = 0;
+            }
+            index++;
         }
     }
 
@@ -180,32 +235,40 @@ contract Main is VRFConsumerBaseV2 {
         uint256, /* requestId */
         uint256[] memory randomWords
     ) internal override {
-        s_randomWordsArray = randomWords;
-        emit ReceivedRandomWords();
-        if (s_territoryState == TerritoryState.INCOMPLETE) {
-            assignTerritory(randomWords);
-        } else {
-            assignTroops(randomWords);
-        }
+        emit gotRandomness();
+        getRandomWordsArrayTerritories(42, randomWords[0]);
+        console.log(s_randomWordsArray.length);
+        assignTerritory();
+        // console.log("Getting Random Troops");
+        // getRandomWordsArrayTroops(78, randomWords[1]);
+        // console.log(s_randomWordsArrayTroops.length);
+        //assignTroops();
     }
 
     /**
      * Function receives array of 42 random words which are then used to assign each territory (0-41) an owner (0-3).
      * Mutates a globally declared array s_territories.
      */
-    function assignTerritory(uint256[] memory randomWords) private {
-        uint8[4] memory playerSelection = [0, 1, 2, 3]; // Eligible players to be assigned territory, each is popped until no players left to receive.
+    function assignTerritory() private {
+        // Eligible players to be assigned territory, each is popped until no players left to receive.
         uint8 territoryCap = 10; // Initial cap is 10, moves up to 11 after two players assigned 10.
         uint8 remainingPlayers = 4; // Ticks down as players hit their territory cap
         uint256 indexAssignedTerritory; // Index of playerSelection that contains a list of eligible players to receive territory.
         uint8 playerAwarded; // Stores the player to be awarded territory, for pushing into the s_territories array.'
-        for (uint256 i = 0; i < randomWords.length; i++) {
-            indexAssignedTerritory = randomWords[i] % remainingPlayers; // Calculates which index from playerSelection will receive the territory
+        for (uint256 i = 0; i < s_randomWordsArray.length; i++) {
+            indexAssignedTerritory = s_randomWordsArray[i] % remainingPlayers; // Calculates which index from playerSelection will receive the territory
             playerAwarded = playerSelection[indexAssignedTerritory]; // Player to be awarded territory
             IControls(controls_address).push_to_territories(playerAwarded);
             territoriesAssigned[playerAwarded]++;
             if (territoriesAssigned[playerAwarded] == territoryCap) {
-                delete playerSelection[playerAwarded]; // Removes awarded player from the array upon hitting territory cap.
+                console.log("territories assigned to player bering popped: ", territoriesAssigned[playerAwarded]);
+                console.log("popping player: ", playerAwarded);
+                delete playerSelection[indexAssignedTerritory]; // Removes awarded player from the array upon hitting territory cap.
+                remove(indexAssignedTerritory);
+                for (uint256 j = 0; j < playerSelection.length; j++) {
+                    console.log("this player left in array: ", playerSelection[j]);
+                }
+                //orderedArray(playerAwarded);
                 remainingPlayers--;
                 if (remainingPlayers == 2) {
                     territoryCap = 11; // Moves up instead of down, to remove situation where the cap goes down and we have players already on the cap then receiving too much territory.
@@ -213,10 +276,21 @@ contract Main is VRFConsumerBaseV2 {
             }
         }
         s_territoryState = TerritoryState.COMPLETE;
-        requestRandomness(78);
     }
 
-    function assignTroops(uint256[] memory randomWords) private {
+    function remove(uint256 index) public {
+        playerSelection[index] = playerSelection[playerSelection.length - 1];
+        playerSelection.pop();
+    }
+
+    function orderedArray(uint256 index) public {
+        for (uint256 i = index; i < playerSelection.length - 1; i++) {
+            playerSelection[i] = playerSelection[i + 1];
+        }
+        playerSelection.pop();
+    }
+
+    function assignTroops() private {
         uint256 randomWordsIndex = 0;
         // s_territories.length == 42
         // playerTerritoryIndexes.length == 10 or 11
@@ -230,7 +304,7 @@ contract Main is VRFConsumerBaseV2 {
             }
 
             for (uint256 j = 0; j < 30 - territoriesAssigned[i]; j++) {
-                uint256 territoryAssignedTroop = randomWords[randomWordsIndex++] % territoriesAssigned[i];
+                uint256 territoryAssignedTroop = s_randomWordsArray[randomWordsIndex++] % territoriesAssigned[i];
                 IControls(controls_address).add_troop_to_territory(playerTerritoryIndexes[territoryAssignedTroop]);
             }
         }
@@ -346,5 +420,20 @@ contract Main is VRFConsumerBaseV2 {
             duplicateAddresses[s_lobbyEntrants[i]] = false;
         }
         emit MainReset();
+    }
+
+    function insertionSort(uint8[4] memory arr) private pure {
+        uint256 i;
+        uint256 key;
+        int256 j;
+        for (i = 1; i < arr.length; i++) {
+            key = arr[i];
+            j = int256(i - 1);
+            while (j >= 0 && arr[uint256(j)] < key) {
+                arr[uint256(j + 1)] = arr[uint256(j)];
+                j = j - 1;
+            }
+            arr[uint256(j + 1)] = uint8(key);
+        }
     }
 }

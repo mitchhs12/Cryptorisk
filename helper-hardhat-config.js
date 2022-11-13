@@ -17,7 +17,7 @@ const networkConfig = {
         subscriptionId: "1",
         gasLane: "0x79d3d8832d904592c0bf9818b621522c988bb8b0c05cdc3b15aea1b6e8db0c15", // 30 gwei
         lobbyEntranceFee: "100000000000000000", //0.1 ETH
-        callbackGasLimit: "3000000", //3,000,000 gas
+        callbackGasLimit: "30000000", //3,000,000 gas
     },
     43113: {
         name: "fuji",

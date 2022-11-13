@@ -109,7 +109,6 @@ contract Controls is IControls, VRFConsumerBaseV2 {
     }
 
     function set_main_address(address main) external {
-        console.log("Hello");
         require(s_mainSet == mainAddressSent.FALSE);
         emit ReceivedMain(main);
         main_address = main;

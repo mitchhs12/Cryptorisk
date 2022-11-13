@@ -72,10 +72,8 @@ module.exports = {
         },
     },
     gasReporter: {
-        enabled: REPORT_GAS,
-        currency: "USD",
+        enabled: true,
         outputFile: "gas-report.txt",
-        noColors: false,
         // coinmarketcap: process.env.COINMARKETCAP_API_KEY,
     },
     contractSizer: {
