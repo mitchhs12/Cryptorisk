@@ -240,10 +240,10 @@ contract Main is VRFConsumerBaseV2, AutomationCompatibleInterface {
         bytes calldata /* performData */
     ) external override {
         randomWordsArrayTerritories();
-        // randomWordsArrayTroops();
-        // emit GameSetupComplete();
-        // s_gameState = GameState.DEPLOY;
-        // IControls(controls_address).set_players(s_players);
+        randomWordsArrayTroops();
+        emit GameSetupComplete();
+        s_gameState = GameState.DEPLOY;
+        IControls(controls_address).set_players(s_players);
     }
 
     function fulfillRandomWords(
