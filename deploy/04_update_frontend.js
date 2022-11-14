@@ -28,7 +28,7 @@ async function updateContractAddresses() {
 
     if (network.config.chainId.toString() in mainAddresses) {
         if (!mainAddresses[network.config.chainId.toString()].includes(main.address)) {
-            mainAddresses[network.config.chainId.toString()].push(main.address)
+            mainAddresses[network.config.chainId.toString()] = [main.address]
             //console.log(mainAddresses[network.config.chainId.toString()])
         } else {
             mainAddresses[network.config.chainId.toString()] = [main.address]
@@ -36,14 +36,14 @@ async function updateContractAddresses() {
     }
     if (network.config.chainId.toString() in controlsAddresses) {
         if (!controlsAddresses[network.config.chainId.toString()].includes(controls.address)) {
-            controlsAddresses[network.config.chainId.toString()].push(controls.address)
+            controlsAddresses[network.config.chainId.toString()] = [controls.address]
         } else {
             controlsAddresses[network.config.chainId.toString()] = [controls.address]
         }
     }
     if (network.config.chainId.toString() in dataAddresses) {
         if (!dataAddresses[network.config.chainId.toString()].includes(data.address)) {
-            dataAddresses[network.config.chainId.toString()].push(data.address)
+            dataAddresses[network.config.chainId.toString()] = [data.address]
         } else {
             dataAddresses[network.config.chainId.toString()] = [data.address]
         }
