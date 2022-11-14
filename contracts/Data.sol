@@ -21,7 +21,7 @@ contract Data is IData {
         FALSE
     }
     Continent_Info[6] public s_continents;
-    Territory_Info[] public s_territories;
+    Territory_Info[42] public s_territories;
     address private controls_address;
     controlsAddressSent public s_controlsSet;
 
@@ -150,7 +150,7 @@ contract Data is IData {
         updateContinentsLoop(38, 42, 5);
     }
 
-    function getAllTerritories() public view returns (Territory_Info[] memory) {
+    function getAllTerritories() public view returns (Territory_Info[42] memory) {
         return s_territories;
     }
 
@@ -171,12 +171,13 @@ contract Data is IData {
         return s_continents;
     }
 
-    function pushToTerritories(uint8 playerAwarded) external override onlyControls {
-        s_territories.push(Territory_Info(playerAwarded, 1));
+    function pushToTerritories(uint256 territory, uint8 playerAwarded) external onlyControls {
+        s_territories[territory].owner = playerAwarded;
+        s_territories[territory].troops = 1;
     }
 
     function addTroopToTerritory(uint256 index) external override onlyControls {
-        s_territories[index].troops++;
+        ++s_territories[index].troops;
     }
 
     function removeTroopFromTerritory(uint256 index) external override onlyControls {
