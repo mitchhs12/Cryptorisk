@@ -179,9 +179,13 @@ contract Main is VRFConsumerBaseV2, AutomationCompatibleInterface {
             num = ((randomWord / (10**index)) % 10) + ((randomWord / (10**(index + 1))) % 10) * 10; // cheaper by 4k gas
             troops[i] = num;
             ++i;
-            if (index == randomLength - 2) {
-                index = 0;
+            if (randomLength > 3) {
+                if (index == randomLength - 2) {
+                    // this might be causing overflow?
+                    index = 0;
+                }
             }
+
             ++index;
         }
         assignTerritory(troops);
