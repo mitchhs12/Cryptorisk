@@ -154,6 +154,11 @@ contract Main is VRFConsumerBaseV2, AutomationCompatibleInterface {
         }
     }
 
+    function remove(uint256 index) public {
+        playerSelection[index] = playerSelection[playerSelection.length - 1];
+        playerSelection.pop();
+    }
+
     // call this function as soon as contract is deployed
     function setMainAddress() public {
         require(s_mainSet == mainAddressSent.FALSE, "Controls contract has already received Main address");
@@ -172,7 +177,7 @@ contract Main is VRFConsumerBaseV2, AutomationCompatibleInterface {
         emit RequestedRandomness(requestId);
     }
 
-    function randomWordsArrayTerritories() public {
+    function randomWordsArrayTerritories() private {
         uint256[] memory territories = new uint256[](42);
         uint256 randomLength = numDigits(randomWordTerritories);
         uint256 num;
@@ -183,18 +188,17 @@ contract Main is VRFConsumerBaseV2, AutomationCompatibleInterface {
             if (num < 8) {
                 territories[i] = (num % 4);
                 //s_randomWordsArrayTerritories.push(num % 4);
-                i++;
+                ++i;
             }
             if (index == randomLength - 1) {
                 index = 0;
             }
-            index++;
+            ++index;
         }
         assignTerritory(territories);
-        // s_randomWordsArrayTerritories = territories;
     }
 
-    function randomWordsArrayTroops() public {
+    function randomWordsArrayTroops() private {
         uint256[] memory troops = new uint256[](78);
         uint256 randomLength = numDigits(randomWordTroops);
         uint256 num;
@@ -206,14 +210,13 @@ contract Main is VRFConsumerBaseV2, AutomationCompatibleInterface {
             num2 = getDigitAtIndex(randomWordTroops, index + 1);
             num = num + num2 * 10;
             troops[i] = num;
-            i++;
+            ++i;
             if (index == randomLength - 2) {
                 index = 0;
             }
-            index++;
+            ++index;
         }
         assignTroops(troops);
-        // s_randomWordsArrayTroops = troops;
     }
 
     function checkUpkeep(
@@ -257,26 +260,21 @@ contract Main is VRFConsumerBaseV2, AutomationCompatibleInterface {
      * Mutates a globally declared array s_territories.
      */
 
-    function remove(uint256 index) public {
-        playerSelection[index] = playerSelection[playerSelection.length - 1];
-        playerSelection.pop();
-    }
-
     function assignTerritory(uint256[] memory territories) private {
         // Eligible players to be assigned territory, each is popped until no players left to receive.
         uint8 territoryCap = 10; // Initial cap is 10, moves up to 11 after two players assigned 10.
         uint8 remainingPlayers = 4; // Ticks down as players hit their territory cap
         uint256 indexAssignedTerritory; // Index of playerSelection that contains a list of eligible players to receive territory.
         uint8 playerAwarded; // Stores the player to be awarded territory, for pushing into the s_territories array.'
-        for (uint256 i; i < territories.length; i++) {
+        for (uint256 i; i < territories.length; ++i) {
             indexAssignedTerritory = territories[i] % remainingPlayers; // Calculates which index from playerSelection will receive the territory
             playerAwarded = playerSelection[indexAssignedTerritory]; // Player to be awarded territory
             IControls(controls_address).push_to_territories(playerAwarded);
-            territoriesAssigned[playerAwarded]++;
+            ++territoriesAssigned[playerAwarded];
             if (territoriesAssigned[playerAwarded] == territoryCap) {
                 delete playerSelection[indexAssignedTerritory]; // Removes awarded player from the array upon hitting territory cap.
                 remove(indexAssignedTerritory);
-                remainingPlayers--;
+                --remainingPlayers;
                 if (remainingPlayers == 2) {
                     territoryCap = 11; // Moves up instead of down, to remove situation where the cap goes down and we have players already on the cap then receiving too much territory.
                 }
@@ -288,15 +286,15 @@ contract Main is VRFConsumerBaseV2, AutomationCompatibleInterface {
         uint256 randomWordsIndex;
         // s_territories.length == 42
         // playerTerritoryIndexes.length == 10 or 11
-        for (uint256 i; i < 4; i++) {
+        for (uint256 i; i < 4; ++i) {
             uint256[] memory playerTerritoryIndexes = new uint256[](territoriesAssigned[i]); // Initializes array of indexes for territories owned by player i
             uint256 index = 0;
-            for (uint256 j = 0; j < 42; j++) {
+            for (uint256 j = 0; j < 42; ++j) {
                 if (IControls(controls_address).get_territory_owner(j) == i) {
                     playerTerritoryIndexes[index++] = j;
                 }
             }
-            for (uint256 j; j < 30 - territoriesAssigned[i]; j++) {
+            for (uint256 j; j < 30 - territoriesAssigned[i]; ++j) {
                 uint256 territoryAssignedTroop = troops[randomWordsIndex++] % territoriesAssigned[i];
                 IControls(controls_address).add_troop_to_territory(playerTerritoryIndexes[territoryAssignedTroop]);
             }
@@ -361,7 +359,7 @@ contract Main is VRFConsumerBaseV2, AutomationCompatibleInterface {
         //if (number < 0) digits = 1; // enable this line if '-' counts as a digit
         while (number != 0) {
             number /= 10;
-            digits++;
+            ++digits;
         }
         return digits;
     }
@@ -426,7 +424,7 @@ contract Main is VRFConsumerBaseV2, AutomationCompatibleInterface {
         s_players = new address payable[](0);
         s_gameState = GameState.INACTIVE;
         territoriesAssigned = [0, 0, 0, 0];
-        for (uint256 i; i < s_lobbyEntrants.length; i++) {
+        for (uint256 i; i < s_lobbyEntrants.length; ++i) {
             duplicateAddresses[s_lobbyEntrants[i]] = false;
         }
         emit MainReset();
@@ -436,12 +434,12 @@ contract Main is VRFConsumerBaseV2, AutomationCompatibleInterface {
         uint256 i;
         uint256 key;
         int256 j;
-        for (i = 1; i < arr.length; i++) {
+        for (i = 1; i < arr.length; ++i) {
             key = arr[i];
             j = int256(i - 1);
             while (j >= 0 && arr[uint256(j)] < key) {
                 arr[uint256(j + 1)] = arr[uint256(j)];
-                j = j - 1;
+                --j;
             }
             arr[uint256(j + 1)] = uint8(key);
         }

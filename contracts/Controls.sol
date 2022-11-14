@@ -110,7 +110,7 @@ contract Controls is IControls, VRFConsumerBaseV2 {
         _;
     }
 
-    function set_main_address(address main) external {
+    function set_main_address(address main) external override {
         require(s_mainSet == mainAddressSent.FALSE);
         emit ReceivedMain(main);
         main_address = main;
@@ -118,7 +118,7 @@ contract Controls is IControls, VRFConsumerBaseV2 {
         IData(data_address).setControlsAddress(address(this));
     }
 
-    function set_players(address payable[] memory players) external onlyMain {
+    function set_players(address payable[] memory players) external override onlyMain {
         s_playersArray = players;
         IData(data_address).initializeContinents();
         next_player();
@@ -150,7 +150,7 @@ contract Controls is IControls, VRFConsumerBaseV2 {
         }
     }
 
-    function deploy_control(uint8 amountToDeploy, uint8 location) external onlyMain returns (bool) {
+    function deploy_control(uint8 amountToDeploy, uint8 location) external override onlyMain returns (bool) {
         require(IData(data_address).getTerritoryOwner(location) == s_playerTurn, "You do not own this territory");
         emit PlayerDeploying(s_playersArray[s_playerTurn]);
         for (uint256 i; i < amountToDeploy; i++) {
@@ -167,7 +167,7 @@ contract Controls is IControls, VRFConsumerBaseV2 {
         uint8 territoryOwned,
         uint8 territoryAttacking,
         uint256 attackingArmies // could
-    ) external onlyMain {
+    ) external override onlyMain {
         require(
             validate_attackable(territoryOwned, territoryAttacking),
             "Territory you are trying to attack is not a neighbour!"
@@ -207,7 +207,7 @@ contract Controls is IControls, VRFConsumerBaseV2 {
     ) private {
         uint256[] memory attackerRolls = new uint256[](attackingArmies);
         uint256[] memory defenderRolls = new uint256[](defendingArmies);
-        for (uint256 i; i < (attackingArmies + defendingArmies); i++) {
+        for (uint256 i; i < (attackingArmies + defendingArmies); ++i) {
             if (i < attackingArmies) {
                 attackerRolls[i] = randomWords[i] % 6;
             } else {
@@ -218,8 +218,8 @@ contract Controls is IControls, VRFConsumerBaseV2 {
         insertionSort(attackerRolls);
         insertionSort(defenderRolls);
 
-        for (uint256 i; i < attackerRolls.length; i++) {}
-        for (uint256 i; i < defenderRolls.length; i++) {}
+        for (uint256 i; i < attackerRolls.length; ++i) {}
+        for (uint256 i; i < defenderRolls.length; ++i) {}
 
         uint256 attacks; // either 1 or 2
         if (attackingArmies > defendingArmies) {
@@ -227,7 +227,7 @@ contract Controls is IControls, VRFConsumerBaseV2 {
         } else {
             attacks = attackingArmies;
         }
-        for (uint256 i; i < attacks; i++) {
+        for (uint256 i; i < attacks; ++i) {
             console.log("attacker rolls", attackerRolls[i]);
             console.log("defender rolls", defenderRolls[i]);
             if (attackerRolls[i] > defenderRolls[i]) {
@@ -329,7 +329,7 @@ contract Controls is IControls, VRFConsumerBaseV2 {
         uint8 territoryMovingFrom,
         uint8 territoryMovingTo,
         uint256 troopsMoving
-    ) external onlyMain returns (bool) {
+    ) external override onlyMain returns (bool) {
         //need to add parameters
         emit PlayerFortifying(s_playersArray[s_playerTurn]);
         require(
@@ -415,7 +415,7 @@ contract Controls is IControls, VRFConsumerBaseV2 {
         s_playersArray = new address payable[](0);
     }
 
-    function add_troop_to_territory(uint256 index) external onlyMain {
+    function add_troop_to_territory(uint256 index) external override onlyMain {
         IData(data_address).addTroopToTerritory(index);
     }
 
@@ -433,15 +433,15 @@ contract Controls is IControls, VRFConsumerBaseV2 {
         return totalTroops;
     }
 
-    function get_territory_owner(uint256 j) external onlyMain returns (uint256) {
+    function get_territory_owner(uint256 j) external override onlyMain returns (uint256) {
         return IData(data_address).getTerritoryOwner(j);
     }
 
-    function get_troops_to_deploy() public view returns (uint8) {
+    function get_troops_to_deploy() public view override returns (uint8) {
         return s_troopsToDeploy;
     }
 
-    function getPlayerTurn() public view returns (address) {
+    function getPlayerTurn() public view override returns (address) {
         return s_playersArray[s_playerTurn];
     }
 
@@ -449,11 +449,11 @@ contract Controls is IControls, VRFConsumerBaseV2 {
         return s_requestId;
     }
 
-    function push_to_territories(uint8 playerAwarded) external onlyMain {
+    function push_to_territories(uint8 playerAwarded) external override onlyMain {
         IData(data_address).pushToTerritories(playerAwarded);
     }
 
-    function getAttackStatus() public view returns (bool) {
+    function getAttackStatus() public view override returns (bool) {
         return s_attackSuccess;
     }
 
@@ -461,12 +461,12 @@ contract Controls is IControls, VRFConsumerBaseV2 {
         uint256 i;
         uint256 key;
         int256 j;
-        for (i = 1; i < arr.length; i++) {
+        for (i = 1; i < arr.length; ++i) {
             key = arr[i];
             j = int256(i - 1);
             while (j >= 0 && arr[uint256(j)] < key) {
                 arr[uint256(j + 1)] = arr[uint256(j)];
-                j = j - 1;
+                --j;
             }
             arr[uint256(j + 1)] = key;
         }

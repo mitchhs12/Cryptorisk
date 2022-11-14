@@ -80,7 +80,7 @@ contract Data is IData {
         s_controlsSet = controlsAddressSent.FALSE;
     }
 
-    function setControlsAddress(address controls) external {
+    function setControlsAddress(address controls) external override {
         require(s_controlsSet == controlsAddressSent.FALSE);
         emit ReceivedControls(controls);
         controls_address = controls;
@@ -89,7 +89,7 @@ contract Data is IData {
 
     // Initializes continents array with owner -1 (indicates no owner), and the troop bonuses of each continent.
     // As player comes to own a contient, owner will be changed to the player.
-    function initializeContinents() external onlyControls {
+    function initializeContinents() external override onlyControls {
         for (uint8 i = 0; i < 6; i++) {
             s_continents[i].owner = 4; //@dev 0=p1, 1=p2, 2=p3, 3=p4, 4=available
             if (i == 0) {
@@ -135,7 +135,7 @@ contract Data is IData {
         }
     }
 
-    function updateContinents() external onlyControls {
+    function updateContinents() external override onlyControls {
         // North America
         updateContinentsLoop(0, 9, 0);
         // South America
@@ -159,11 +159,11 @@ contract Data is IData {
     }
 
     /* Controls Functions */
-    function getContinentBonus(uint256 continent) external view returns (uint8) {
+    function getContinentBonus(uint256 continent) external view override returns (uint8) {
         return s_continents[continent].troopBonus;
     }
 
-    function getContinentOwner(uint256 continent) external view returns (uint8) {
+    function getContinentOwner(uint256 continent) external view override returns (uint8) {
         return s_continents[continent].owner;
     }
 
@@ -171,35 +171,35 @@ contract Data is IData {
         return s_continents;
     }
 
-    function pushToTerritories(uint8 playerAwarded) external onlyControls {
+    function pushToTerritories(uint8 playerAwarded) external override onlyControls {
         s_territories.push(Territory_Info(playerAwarded, 1));
     }
 
-    function addTroopToTerritory(uint256 index) external onlyControls {
+    function addTroopToTerritory(uint256 index) external override onlyControls {
         s_territories[index].troops++;
     }
 
-    function removeTroopFromTerritory(uint256 index) external onlyControls {
+    function removeTroopFromTerritory(uint256 index) external override onlyControls {
         s_territories[index].troops--;
     }
 
-    function getNeighbours(uint256 territory) external view onlyControls returns (uint8[] memory) {
+    function getNeighbours(uint256 territory) external view override onlyControls returns (uint8[] memory) {
         return s_neighbours[territory];
     }
 
-    function getTerritoryOwner(uint256 j) public view returns (uint8 owner) {
+    function getTerritoryOwner(uint256 j) public view override returns (uint8 owner) {
         return s_territories[j].owner;
     }
 
-    function getTroopCount(uint256 territory) public view returns (uint256) {
+    function getTroopCount(uint256 territory) public view override returns (uint256) {
         return s_territories[territory].troops;
     }
 
-    function changeOwner(uint256 territory, uint8 newOwner) external onlyControls {
+    function changeOwner(uint256 territory, uint8 newOwner) external override onlyControls {
         s_territories[territory].owner = newOwner;
     }
 
-    function resetData() external onlyControls {
+    function resetData() external override onlyControls {
         delete s_territories;
     }
 }
