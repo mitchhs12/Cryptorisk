@@ -176,15 +176,13 @@ contract Main is VRFConsumerBaseV2, AutomationCompatibleInterface {
         uint256[] memory territories = new uint256[](42);
         uint256 randomLength = numDigits(randomWordTerritories);
         uint256 num;
-        uint8 index = 0;
-        uint256 i = 0;
-        console.log(i);
+        uint8 index;
+        uint256 i;
         while (i < 42) {
             num = getDigitAtIndex(randomWordTerritories, index);
             if (num < 8) {
                 territories[i] = (num % 4);
                 //s_randomWordsArrayTerritories.push(num % 4);
-                console.log(territories[i]);
                 i++;
             }
             if (index == randomLength - 1) {
@@ -193,6 +191,7 @@ contract Main is VRFConsumerBaseV2, AutomationCompatibleInterface {
             index++;
         }
         assignTerritory(territories);
+        // s_randomWordsArrayTerritories = territories;
     }
 
     function randomWordsArrayTroops() public {
@@ -200,16 +199,13 @@ contract Main is VRFConsumerBaseV2, AutomationCompatibleInterface {
         uint256 randomLength = numDigits(randomWordTroops);
         uint256 num;
         uint256 num2;
-        uint8 index = 0;
-        uint8 i = 0;
+        uint8 index;
+        uint8 i;
         while (i < 78) {
-            console.log(i, ":");
             num = getDigitAtIndex(randomWordTroops, index);
             num2 = getDigitAtIndex(randomWordTroops, index + 1);
             num = num + num2 * 10;
             troops[i] = num;
-            //s_randomWordsArrayTroops.push(num);
-            console.log("index in string", index, "randomNum: ", num);
             i++;
             if (index == randomLength - 2) {
                 index = 0;
@@ -217,6 +213,7 @@ contract Main is VRFConsumerBaseV2, AutomationCompatibleInterface {
             index++;
         }
         assignTroops(troops);
+        // s_randomWordsArrayTroops = troops;
     }
 
     function checkUpkeep(
@@ -253,7 +250,6 @@ contract Main is VRFConsumerBaseV2, AutomationCompatibleInterface {
         emit gotRandomness();
         randomWordTerritories = randomWords[0];
         randomWordTroops = randomWords[1];
-        console.log("received randomness");
     }
 
     /**
@@ -272,14 +268,12 @@ contract Main is VRFConsumerBaseV2, AutomationCompatibleInterface {
         uint8 remainingPlayers = 4; // Ticks down as players hit their territory cap
         uint256 indexAssignedTerritory; // Index of playerSelection that contains a list of eligible players to receive territory.
         uint8 playerAwarded; // Stores the player to be awarded territory, for pushing into the s_territories array.'
-        for (uint256 i = 0; i < territories.length; i++) {
+        for (uint256 i; i < territories.length; i++) {
             indexAssignedTerritory = territories[i] % remainingPlayers; // Calculates which index from playerSelection will receive the territory
             playerAwarded = playerSelection[indexAssignedTerritory]; // Player to be awarded territory
             IControls(controls_address).push_to_territories(playerAwarded);
             territoriesAssigned[playerAwarded]++;
             if (territoriesAssigned[playerAwarded] == territoryCap) {
-                console.log("territories assigned to player bering popped: ", territoriesAssigned[playerAwarded]);
-                console.log("popping player: ", playerAwarded);
                 delete playerSelection[indexAssignedTerritory]; // Removes awarded player from the array upon hitting territory cap.
                 remove(indexAssignedTerritory);
                 remainingPlayers--;
@@ -291,10 +285,10 @@ contract Main is VRFConsumerBaseV2, AutomationCompatibleInterface {
     }
 
     function assignTroops(uint256[] memory troops) private {
-        uint256 randomWordsIndex = 0;
+        uint256 randomWordsIndex;
         // s_territories.length == 42
         // playerTerritoryIndexes.length == 10 or 11
-        for (uint256 i = 0; i < 4; i++) {
+        for (uint256 i; i < 4; i++) {
             uint256[] memory playerTerritoryIndexes = new uint256[](territoriesAssigned[i]); // Initializes array of indexes for territories owned by player i
             uint256 index = 0;
             for (uint256 j = 0; j < 42; j++) {
@@ -302,7 +296,7 @@ contract Main is VRFConsumerBaseV2, AutomationCompatibleInterface {
                     playerTerritoryIndexes[index++] = j;
                 }
             }
-            for (uint256 j = 0; j < 30 - territoriesAssigned[i]; j++) {
+            for (uint256 j; j < 30 - territoriesAssigned[i]; j++) {
                 uint256 territoryAssignedTroop = troops[randomWordsIndex++] % territoriesAssigned[i];
                 IControls(controls_address).add_troop_to_territory(playerTerritoryIndexes[territoryAssignedTroop]);
             }
@@ -322,13 +316,13 @@ contract Main is VRFConsumerBaseV2, AutomationCompatibleInterface {
     }
 
     function attack(
-        uint8 territoryOwned,
-        uint8 territoryAttacking,
-        uint256 troopQuantity
+        uint8 useThisTerritory,
+        uint8 toAttackThisTerritory,
+        uint256 withTroopQuantity
     ) public onlyPlayer {
         require(IControls(controls_address).getAttackStatus() == false);
         require(s_gameState == GameState.ATTACK, "It is currently not attack phase!");
-        IControls(controls_address).attack_control(territoryOwned, territoryAttacking, troopQuantity);
+        IControls(controls_address).attack_control(useThisTerritory, toAttackThisTerritory, withTroopQuantity);
     }
 
     // player clicks this button when they have finished attacking
@@ -363,7 +357,7 @@ contract Main is VRFConsumerBaseV2, AutomationCompatibleInterface {
     /** Pure Functions */
 
     function numDigits(uint256 number) public pure returns (uint256) {
-        uint256 digits = 0;
+        uint256 digits;
         //if (number < 0) digits = 1; // enable this line if '-' counts as a digit
         while (number != 0) {
             number /= 10;
@@ -432,7 +426,7 @@ contract Main is VRFConsumerBaseV2, AutomationCompatibleInterface {
         s_players = new address payable[](0);
         s_gameState = GameState.INACTIVE;
         territoriesAssigned = [0, 0, 0, 0];
-        for (uint256 i = 0; i < s_lobbyEntrants.length; i++) {
+        for (uint256 i; i < s_lobbyEntrants.length; i++) {
             duplicateAddresses[s_lobbyEntrants[i]] = false;
         }
         emit MainReset();

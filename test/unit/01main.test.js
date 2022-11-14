@@ -36,7 +36,6 @@ const { BytesLike, parseEther } = require("ethers/lib/utils")
               })
               it("Checks the entraceFee is set correctly", async function () {
                   const entranceFee = await main.getEntranceFee()
-                  console.log(entranceFee)
                   assert.equal(entranceFee.toString(), ethers.utils.parseEther("0.1"))
               })
               it("checks that a player can only enter the lobby once", async function () {
@@ -127,7 +126,6 @@ const { BytesLike, parseEther } = require("ethers/lib/utils")
                   const tx = await player4_connection.enterLobby({ value: entranceFee })
                   const receipt = await tx.wait(1)
                   requestId = receipt.events[3].args.requestId
-                  console.log("requestId:", requestId)
                   await expect(vrfCoordinatorV2Mock.fulfillRandomWords(requestId, main.address)).to.emit(
                       main,
                       "gotRandomness"

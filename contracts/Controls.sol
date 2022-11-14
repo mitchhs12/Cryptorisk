@@ -44,6 +44,8 @@ contract Controls is IControls, VRFConsumerBaseV2 {
     event RollingDice(uint256 indexed s_requestId);
     event GameOver(address indexed winner);
     event TransferTroopsAvailable(uint256 indexed territoryBeingAttacked);
+    event AttackerDie(uint256 indexed die);
+    event DefenderDie(uint256 indexed die);
 
     // enums
 
@@ -93,7 +95,7 @@ contract Controls is IControls, VRFConsumerBaseV2 {
         data_address = data;
         s_mainSet = mainAddressSent.FALSE;
         s_playerTurn = 3;
-        s_troopsToDeploy = 0;
+        s_troopsToDeploy;
         s_attackSuccess = false;
         s_gameIsOver = false;
     }
@@ -129,14 +131,14 @@ contract Controls is IControls, VRFConsumerBaseV2 {
         }
         IData(data_address).updateContinents();
         s_troopsToDeploy = 0;
-        for (uint256 c = 0; c < 6; c++) {
+        for (uint256 c; c < 6; c++) {
             if (IData(data_address).getContinentOwner(c) == s_playerTurn) {
                 s_troopsToDeploy += IData(data_address).getContinentBonus(c);
             }
         }
 
-        uint8 totalTerritories = 0;
-        for (uint256 i = 0; i < 42; i++) {
+        uint8 totalTerritories;
+        for (uint256 i; i < 42; i++) {
             if (IData(data_address).getTerritoryOwner(i) == s_playerTurn) {
                 totalTerritories++;
             }
@@ -151,7 +153,7 @@ contract Controls is IControls, VRFConsumerBaseV2 {
     function deploy_control(uint8 amountToDeploy, uint8 location) external onlyMain returns (bool) {
         require(IData(data_address).getTerritoryOwner(location) == s_playerTurn, "You do not own this territory");
         emit PlayerDeploying(s_playersArray[s_playerTurn]);
-        for (uint256 i = 0; i < amountToDeploy; i++) {
+        for (uint256 i; i < amountToDeploy; i++) {
             IData(data_address).addTroopToTerritory(location);
         }
         s_troopsToDeploy -= amountToDeploy;
@@ -183,6 +185,7 @@ contract Controls is IControls, VRFConsumerBaseV2 {
             defendingArmies = 1;
         }
         uint8 num_words = getArmies(attackingArmies, defendingArmies); // attackingArmies, defendingArmies not returning correct numbers
+        console.log("num words:", num_words);
         s_recentTerritoryAttacking = territoryOwned;
         s_recentTerritoryBeingAttacked = territoryAttacking;
         s_recentAttackingArmies = attackingArmies;
@@ -204,20 +207,19 @@ contract Controls is IControls, VRFConsumerBaseV2 {
     ) private {
         uint256[] memory attackerRolls = new uint256[](attackingArmies);
         uint256[] memory defenderRolls = new uint256[](defendingArmies);
-        for (uint256 i = 0; i < (attackingArmies + defendingArmies); i++) {
+        for (uint256 i; i < (attackingArmies + defendingArmies); i++) {
             if (i < attackingArmies) {
                 attackerRolls[i] = randomWords[i] % 6;
             } else {
                 defenderRolls[i - attackingArmies] = randomWords[i] % 6;
             }
         }
-
         // Sorting the two rolls arrays
         insertionSort(attackerRolls);
         insertionSort(defenderRolls);
 
-        for (uint256 i = 0; i < attackerRolls.length; i++) {}
-        for (uint256 i = 0; i < defenderRolls.length; i++) {}
+        for (uint256 i; i < attackerRolls.length; i++) {}
+        for (uint256 i; i < defenderRolls.length; i++) {}
 
         uint256 attacks; // either 1 or 2
         if (attackingArmies > defendingArmies) {
@@ -225,10 +227,14 @@ contract Controls is IControls, VRFConsumerBaseV2 {
         } else {
             attacks = attackingArmies;
         }
-        for (uint256 i = 0; i < attacks; i++) {
+        for (uint256 i; i < attacks; i++) {
+            console.log("attacker rolls", attackerRolls[i]);
+            console.log("defender rolls", defenderRolls[i]);
             if (attackerRolls[i] > defenderRolls[i]) {
                 // 3 v 1 , 2 v 1 , 1 v 1, 2 v 2, 2 v 1, 1 v 1 //
                 // attacker wins, defender dies
+                emit AttackerDie(attackerRolls[i]);
+                emit DefenderDie(defenderRolls[i]);
                 IData(data_address).removeTroopFromTerritory(territoryBeingAttacked);
                 if (
                     // Attacker has killed all troops in the defending territory
@@ -254,6 +260,8 @@ contract Controls is IControls, VRFConsumerBaseV2 {
                 }
             } else {
                 // defender wins
+                emit AttackerDie(attackerRolls[i]);
+                emit DefenderDie(defenderRolls[i]);
                 IData(data_address).removeTroopFromTerritory(territoryAttacking);
             }
         }
@@ -268,7 +276,7 @@ contract Controls is IControls, VRFConsumerBaseV2 {
             "You cannot move that amount of troops!"
         );
 
-        for (uint256 i = 0; i < amountOfTroops; i++) {
+        for (uint256 i; i < amountOfTroops; i++) {
             IData(data_address).addTroopToTerritory(s_recentTerritoryBeingAttacked);
             IData(data_address).removeTroopFromTerritory(s_recentTerritoryAttacking);
         }
@@ -311,7 +319,7 @@ contract Controls is IControls, VRFConsumerBaseV2 {
             "You cannot move that amount of troops!"
         );
 
-        for (uint256 i = 0; i < troopsMoving; i++) {
+        for (uint256 i; i < troopsMoving; i++) {
             IData(data_address).addTroopToTerritory(territoryMovingTo);
             IData(data_address).removeTroopFromTerritory(territoryMovingFrom);
         }
@@ -350,7 +358,7 @@ contract Controls is IControls, VRFConsumerBaseV2 {
             "You must own both territories to move troops!"
         );
         uint8[] memory neighbours = IData(data_address).getNeighbours(territoryMovingFrom);
-        for (uint256 i = 0; i < 6; i++) {
+        for (uint256 i; i < 6; i++) {
             if ((territoryMovingTo == neighbours[i])) {
                 return true;
             }
@@ -365,7 +373,7 @@ contract Controls is IControls, VRFConsumerBaseV2 {
         );
         require(!validate_owner(territoryAttacking), "You cannot attack your own territory!"); //checks if the player owns the territory they are trying to attack
         uint8[] memory neighbours = IData(data_address).getNeighbours(territoryOwned);
-        for (uint256 i = 0; i < 6; i++) {
+        for (uint256 i; i < 6; i++) {
             if ((territoryAttacking == neighbours[i])) {
                 return true;
             }
@@ -374,7 +382,7 @@ contract Controls is IControls, VRFConsumerBaseV2 {
     }
 
     function getArmies(uint256 attackingArmies, uint256 defendingArmies) private pure returns (uint8) {
-        uint8 num_words = 0;
+        uint8 num_words;
         if (attackingArmies == 3) {
             num_words = 3;
         } else if (attackingArmies == 2) {
@@ -401,7 +409,7 @@ contract Controls is IControls, VRFConsumerBaseV2 {
 
     function resetControls() private {
         s_playerTurn = 3;
-        s_troopsToDeploy = 0;
+        s_troopsToDeploy;
         s_attackSuccess = false;
         s_gameIsOver = false;
         s_playersArray = new address payable[](0);
@@ -416,8 +424,8 @@ contract Controls is IControls, VRFConsumerBaseV2 {
     }
 
     function getTotalTroops(uint256 player) public returns (uint256) {
-        uint256 totalTroops = 0;
-        for (uint256 i = 0; i < 42; i++) {
+        uint256 totalTroops;
+        for (uint256 i; i < 42; i++) {
             if (IData(data_address).getTerritoryOwner(i) == player) {
                 totalTroops += IData(data_address).getTroopCount(i);
             }

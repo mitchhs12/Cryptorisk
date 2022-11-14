@@ -42,10 +42,10 @@ const { Contract } = require("ethers")
                   assert.equal(turn, player1.address)
               })
               it("Only player 1 can only play because it's their turn", async function () {
-                  await expect(player2_connection.deploy(3, 10)).to.be.reverted
-                  await expect(player3_connection.deploy(3, 10)).to.be.reverted
-                  await expect(player4_connection.deploy(3, 10)).to.be.reverted
-                  await expect(player1_connection.deploy(3, 41)).to.emit(controls, "PlayerDeploying")
+                  await expect(player2_connection.deploy(3, 2)).to.be.reverted
+                  await expect(player3_connection.deploy(3, 2)).to.be.reverted
+                  await expect(player4_connection.deploy(3, 2)).to.be.reverted
+                  await expect(player1_connection.deploy(3, 2)).to.emit(controls, "PlayerDeploying")
               })
               it("Only player 1 can deploy", async function () {
                   await expect(player1_connection.attack(3, 10, 10)).to.be.reverted
@@ -60,7 +60,7 @@ const { Contract } = require("ethers")
                   await expect(player2_connection.attack(5, 5, 5)).to.be.reverted
                   await expect(player3_connection.attack(6, 6, 5)).to.be.reverted
                   await expect(player4_connection.attack(4, 4, 5)).to.be.reverted
-                  await expect(player1_connection.attack(2, 13, 3)).to.emit(controls, "PlayerAttacking")
+                  await expect(player1_connection.attack(2, 1, 3)).to.emit(controls, "PlayerAttacking")
               })
               it("Continents are assigned", async function () {
                   await expect(player1_connection.deploy(3, 2)).to.emit(controls, "PlayerDeploying")
@@ -97,7 +97,7 @@ const { Contract } = require("ethers")
           describe("We receive some randomness when we attack", function () {
               it("Rolls the Dice Correctly", async function () {
                   await player1_connection.deploy(3, 2)
-                  const tx = await player1_connection.attack(2, 13, 3)
+                  const tx = await player1_connection.attack(2, 1, 3)
                   const receipt = await tx.wait(1)
                   requestId = await controls.getRequestId()
                   await expect(
@@ -107,169 +107,218 @@ const { Contract } = require("ethers")
           })
           describe("Testing attack functionality", function () {
               it("Attack successful", async function () {
-                  territoryAttacking = await data.getTerritories(2)
-                  territoryDefending = await data.getTerritories(13)
+                  territoryAttacking = await data.getTerritories(9)
+                  territoryDefending = await data.getTerritories(8)
                   console.log("Defending territory has: ", territoryDefending.troops.toNumber())
                   console.log("Attacking territory has: ", territoryAttacking.troops.toNumber())
 
-                  await player1_connection.deploy(3, 2)
-                  const tx = await player1_connection.attack(2, 13, 3)
+                  await player1_connection.deploy(3, 9)
+                  const tx = await player1_connection.attack(9, 8, 3)
                   const receipt = await tx.wait(1)
                   requestId = await controls.getRequestId()
                   await expect(
                       await vrfCoordinatorV2Mock.fulfillRandomWords(requestId, controls.address) // We can DELETE s_requestId from Storage in the contract (if this passes)
                   ).to.emit(controls, "DiceRolled")
 
-                  territoryAttacking = await data.getTerritories(2)
-                  territoryDefending = await data.getTerritories(13)
+                  territoryAttacking = await data.getTerritories(9)
+                  territoryDefending = await data.getTerritories(8)
                   console.log("After the battle defending territory has: ", territoryDefending.troops.toNumber())
                   console.log("After the battle Attacking territory has: ", territoryAttacking.troops.toNumber())
               })
               it("Territory conquered successful", async function () {
-                  await player1_connection.deploy(3, 2)
-
-                  territoryAttacking = await data.getTerritories(2)
-                  territoryDefending = await data.getTerritories(13)
+                  await player1_connection.deploy(3, 9)
+                  territoryAttacking = await data.getTerritories(9)
+                  territoryDefending = await data.getTerritories(8)
                   console.log("Defending territory owned by: ", territoryDefending.owner)
                   console.log("Attacking territory owned by: ", territoryAttacking.owner)
                   console.log("Defending territory has: ", territoryDefending.troops.toNumber())
                   console.log("Attacking territory has: ", territoryAttacking.troops.toNumber())
 
-                  const tx = await player1_connection.attack(2, 13, 3)
-                  const receipt = await tx.wait(1)
+                  const tx = await player1_connection.attack(9, 8, 3)
+                  await tx.wait(1)
                   requestId = await controls.getRequestId()
                   await expect(
                       await vrfCoordinatorV2Mock.fulfillRandomWords(requestId, controls.address) // We can DELETE s_requestId from Storage in the contract (if this passes)
                   ).to.emit(controls, "DiceRolled")
 
-                  territoryAttacking = await data.getTerritories(2)
-                  territoryDefending = await data.getTerritories(13)
+                  territoryAttacking = await data.getTerritories(9)
+                  territoryDefending = await data.getTerritories(8)
                   console.log("After the first battle defending territory has: ", territoryDefending.troops.toNumber())
                   console.log("After the first battle Attacking territory has: ", territoryAttacking.troops.toNumber())
 
-                  const tx2 = await player1_connection.attack(2, 13, 3)
-                  const receipt2 = await tx2.wait(1)
-                  requestId = await controls.getRequestId()
+                  const tx2 = await player1_connection.attack(9, 8, 3)
+                  await tx2.wait(1)
+                  requestId2 = await controls.getRequestId()
                   await expect(
-                      await vrfCoordinatorV2Mock.fulfillRandomWords(requestId, controls.address) // We can DELETE s_requestId from Storage in the contract (if this passes)
+                      await vrfCoordinatorV2Mock.fulfillRandomWords(requestId2, controls.address) // We can DELETE s_requestId from Storage in the contract (if this passes)
                   ).to.emit(controls, "DiceRolled")
 
-                  territoryAttacking = await data.getTerritories(2)
-                  territoryDefending = await data.getTerritories(13)
-                  console.log("After the second battle defending territory has: ", territoryDefending.troops.toNumber())
-                  console.log("After the second battle Attacking territory has: ", territoryAttacking.troops.toNumber())
+                  const tx3 = await player1_connection.attack(9, 8, 3)
+                  await tx3.wait(1)
+                  requestId3 = await controls.getRequestId()
+                  await expect(
+                      await vrfCoordinatorV2Mock.fulfillRandomWords(requestId3, controls.address) // We can DELETE s_requestId from Storage in the contract (if this passes)
+                  ).to.emit(controls, "DiceRolled")
+
+                  territoryAttacking = await data.getTerritories(9)
+                  territoryDefending = await data.getTerritories(8)
+                  console.log("After the third battle defending territory has: ", territoryDefending.troops.toNumber())
+                  console.log("After the third battle Attacking territory has: ", territoryAttacking.troops.toNumber())
                   console.log("Defending territory owned by: ", territoryDefending.owner)
                   console.log("Attacking territory owned by: ", territoryAttacking.owner)
+                  assert.equal(territoryDefending.owner, territoryAttacking.owner)
               })
           })
           describe("The player can move troops into claimed territory", function () {
               it("Player cannot attack again before he moves his troops after successful attack", async function () {
-                  await player1_connection.deploy(3, 2)
-                  const tx = await player1_connection.attack(2, 13, 3)
-                  const receipt = await tx.wait(1)
+                  await player1_connection.deploy(3, 9)
+                  const tx = await player1_connection.attack(9, 8, 3)
+                  await tx.wait(1)
                   requestId = await controls.getRequestId()
                   await expect(
                       await vrfCoordinatorV2Mock.fulfillRandomWords(requestId, controls.address) // We can DELETE s_requestId from Storage in the contract (if this passes)
                   ).to.emit(controls, "DiceRolled")
-                  const tx2 = await player1_connection.attack(2, 13, 3)
-                  const receipt2 = await tx2.wait(1)
+                  const tx2 = await player1_connection.attack(9, 8, 3)
+                  await tx2.wait(1)
                   requestId = await controls.getRequestId()
                   await expect(
                       await vrfCoordinatorV2Mock.fulfillRandomWords(requestId, controls.address) // We can DELETE s_requestId from Storage in the contract (if this passes)
                   ).to.emit(controls, "DiceRolled")
-                  territoryAttacking = await data.getTerritories(2)
-                  territoryDefending = await data.getTerritories(13)
+                  const tx3 = await player1_connection.attack(9, 8, 3)
+                  await tx3.wait(1)
+                  requestId = await controls.getRequestId()
+                  await expect(
+                      await vrfCoordinatorV2Mock.fulfillRandomWords(requestId, controls.address) // We can DELETE s_requestId from Storage in the contract (if this passes)
+                  ).to.emit(controls, "DiceRolled")
+                  territoryAttacking = await data.getTerritories(9)
+                  territoryDefending = await data.getTerritories(8)
                   console.log("Defending territory owned by: ", territoryDefending.owner)
                   console.log("Attacking territory owned by: ", territoryAttacking.owner)
-                  await expect(player1_connection.attack(2, 13, 3)).to.be.reverted
+                  console.log("After the third battle defending territory has: ", territoryDefending.troops.toNumber())
+                  console.log("After the third battle Attacking territory has: ", territoryAttacking.troops.toNumber())
+                  await expect(player1_connection.attack(9, 8, 3)).to.be.reverted
               })
               it("Player can move his troops after a successful attack and then attack again", async function () {
-                  await player1_connection.deploy(3, 2)
-                  const tx = await player1_connection.attack(2, 13, 3)
-                  const receipt = await tx.wait(1)
+                  await player1_connection.deploy(3, 9)
+                  const tx = await player1_connection.attack(9, 8, 3)
+                  await tx.wait(1)
                   requestId = await controls.getRequestId()
                   await expect(
                       await vrfCoordinatorV2Mock.fulfillRandomWords(requestId, controls.address) // We can DELETE s_requestId from Storage in the contract (if this passes)
                   ).to.emit(controls, "DiceRolled")
-                  const tx2 = await player1_connection.attack(2, 13, 3)
-                  const receipt2 = await tx2.wait(1)
+                  const tx2 = await player1_connection.attack(9, 8, 3)
+                  await tx2.wait(1)
                   requestId = await controls.getRequestId()
                   await expect(
                       await vrfCoordinatorV2Mock.fulfillRandomWords(requestId, controls.address) // We can DELETE s_requestId from Storage in the contract (if this passes)
                   ).to.emit(controls, "DiceRolled")
-                  territoryAttacking = await data.getTerritories(2)
-                  territoryDefending = await data.getTerritories(13)
+                  const tx3 = await player1_connection.attack(9, 8, 3)
+                  await tx3.wait(1)
+                  requestId = await controls.getRequestId()
+                  await expect(
+                      await vrfCoordinatorV2Mock.fulfillRandomWords(requestId, controls.address) // We can DELETE s_requestId from Storage in the contract (if this passes)
+                  ).to.emit(controls, "DiceRolled")
+                  territoryAttacking = await data.getTerritories(9)
+                  territoryDefending = await data.getTerritories(8)
                   console.log("Defending territory owned by: ", territoryDefending.owner)
                   console.log("Attacking territory owned by: ", territoryAttacking.owner)
+                  console.log("After the third battle defending territory has: ", territoryDefending.troops.toNumber())
+                  console.log("After the third battle Attacking territory has: ", territoryAttacking.troops.toNumber())
                   const p1_controls = controls.connect(player1)
-                  await p1_controls.troopTransferAfterAttack(3)
+                  await p1_controls.troopTransferAfterAttack(2)
               })
               it("Player can attack a different territory after successful conquest", async function () {
-                  await player1_connection.deploy(3, 2)
-                  const tx = await player1_connection.attack(2, 13, 3)
+                  await player1_connection.deploy(3, 9)
+                  const tx = await player1_connection.attack(9, 8, 3)
                   const receipt = await tx.wait(1)
                   requestId = await controls.getRequestId()
                   await expect(
                       await vrfCoordinatorV2Mock.fulfillRandomWords(requestId, controls.address) // We can DELETE s_requestId from Storage in the contract (if this passes)
                   ).to.emit(controls, "DiceRolled")
-                  const tx2 = await player1_connection.attack(2, 13, 3)
-                  const receipt2 = await tx2.wait(1)
+                  const tx2 = await player1_connection.attack(9, 8, 3)
+                  await tx2.wait(1)
                   requestId = await controls.getRequestId()
                   await expect(
                       await vrfCoordinatorV2Mock.fulfillRandomWords(requestId, controls.address) // We can DELETE s_requestId from Storage in the contract (if this passes)
                   ).to.emit(controls, "DiceRolled")
-                  await controls.connect(player1).troopTransferAfterAttack(3)
-                  await player1_connection.attack(13, 15, 3)
+                  const tx3 = await player1_connection.attack(9, 8, 3)
+                  await tx3.wait(1)
+                  requestId = await controls.getRequestId()
+                  await expect(
+                      await vrfCoordinatorV2Mock.fulfillRandomWords(requestId, controls.address) // We can DELETE s_requestId from Storage in the contract (if this passes)
+                  ).to.emit(controls, "DiceRolled")
+                  await controls.connect(player1).troopTransferAfterAttack(2)
+                  await player1_connection.attack(8, 7, 2)
               })
               it("Player cannot transfer troops post attack to a territory he does not own", async function () {
                   territory = await data.getTerritories(13)
                   await player1_connection.deploy(3, 2)
-                  await player1_connection.attack(2, 13, 3)
-                  territory = await data.getTerritories(2)
-                  territory = await data.getTerritories(13)
+                  await player1_connection.attack(2, 1, 1)
+                  terr2 = await data.getTerritories(2)
+                  terr13 = await data.getTerritories(13)
                   await expect(controls.connect(player1).troopTransferAfterAttack(3)).to.be.reverted
               })
           })
           describe("The player can fortify their territory", function () {
               it("Player can call fortity", async function () {
-                  await player1_connection.deploy(3, 2)
-                  const tx = await player1_connection.attack(2, 13, 3)
-                  const receipt = await tx.wait(1)
+                  await player1_connection.deploy(3, 9)
+                  const tx = await player1_connection.attack(9, 8, 3)
+                  await tx.wait(1)
                   requestId = await controls.getRequestId()
                   await expect(
                       await vrfCoordinatorV2Mock.fulfillRandomWords(requestId, controls.address) // We can DELETE s_requestId from Storage in the contract (if this passes)
                   ).to.emit(controls, "DiceRolled")
-                  const tx2 = await player1_connection.attack(2, 13, 3)
-                  const receipt2 = await tx2.wait(1)
+                  const tx2 = await player1_connection.attack(9, 8, 3)
+                  await tx2.wait(1)
                   requestId = await controls.getRequestId()
                   await expect(
                       await vrfCoordinatorV2Mock.fulfillRandomWords(requestId, controls.address) // We can DELETE s_requestId from Storage in the contract (if this passes)
                   ).to.emit(controls, "DiceRolled")
-                  await controls.connect(player1).troopTransferAfterAttack(3)
+                  const tx3 = await player1_connection.attack(9, 8, 3)
+                  await tx3.wait(1)
+                  requestId = await controls.getRequestId()
+                  await expect(
+                      await vrfCoordinatorV2Mock.fulfillRandomWords(requestId, controls.address) // We can DELETE s_requestId from Storage in the contract (if this passes)
+                  ).to.emit(controls, "DiceRolled")
+                  await controls.connect(player1).troopTransferAfterAttack(2)
                   await player1_connection.finishAttack()
-                  await player1_connection.fortify(2, 13, 1) // moves 1 troop from territory 2 to territory 3 -- territory 2 now has 1 troop left
+                  const ter8 = await data.getTerritories(8)
+                  const ter9 = await data.getTerritories(8)
+                  console.log(ter8.owner)
+                  console.log(ter9.owner)
+                  await player1_connection.fortify(8, 9, 1) // moves 1 troop from territory 8 to territory 9
               })
           })
           describe("Player 2 controls", function () {
               it("Player 2 can call deploy and player 1 cannot", async function () {
-                  await player1_connection.deploy(3, 2)
-                  const tx = await player1_connection.attack(2, 13, 3)
-                  const receipt = await tx.wait(1)
+                  await player1_connection.deploy(3, 9)
+                  const tx = await player1_connection.attack(9, 8, 3)
+                  await tx.wait(1)
                   requestId = await controls.getRequestId()
                   await expect(
                       await vrfCoordinatorV2Mock.fulfillRandomWords(requestId, controls.address) // We can DELETE s_requestId from Storage in the contract (if this passes)
                   ).to.emit(controls, "DiceRolled")
-                  const tx2 = await player1_connection.attack(2, 13, 3)
-                  const receipt2 = await tx2.wait(1)
+                  const tx2 = await player1_connection.attack(9, 8, 3)
+                  await tx2.wait(1)
                   requestId = await controls.getRequestId()
                   await expect(
                       await vrfCoordinatorV2Mock.fulfillRandomWords(requestId, controls.address) // We can DELETE s_requestId from Storage in the contract (if this passes)
                   ).to.emit(controls, "DiceRolled")
-                  await controls.connect(player1).troopTransferAfterAttack(3)
+                  const tx3 = await player1_connection.attack(9, 8, 3)
+                  await tx3.wait(1)
+                  requestId = await controls.getRequestId()
+                  await expect(
+                      await vrfCoordinatorV2Mock.fulfillRandomWords(requestId, controls.address) // We can DELETE s_requestId from Storage in the contract (if this passes)
+                  ).to.emit(controls, "DiceRolled")
+                  await controls.connect(player1).troopTransferAfterAttack(2)
                   await player1_connection.finishAttack()
-                  await player1_connection.fortify(2, 13, 1) // moves 1 troop from territory 2 to territory 3 -- territory 2 now has 1 troop left
+                  const ter8 = await data.getTerritories(8)
+                  const ter9 = await data.getTerritories(8)
+                  console.log(ter8.owner)
+                  console.log(ter9.owner)
+                  await player1_connection.fortify(8, 9, 1) // moves 1 troop from territory 8 to territory 9
                   await player2_connection.deploy(2, 19)
-                  await expect(player1_connection.deploy(3, 13)).to.be.reverted
+                  await expect(player1_connection.deploy(3, 15)).to.be.reverted
               })
           })
       })
