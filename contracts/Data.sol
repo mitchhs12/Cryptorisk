@@ -13,7 +13,7 @@ contract Data is IData {
     }
     struct Territory_Info {
         uint8 owner;
-        uint256 troops;
+        uint16 troops;
     }
 
     enum controlsAddressSent {
@@ -174,7 +174,8 @@ contract Data is IData {
 
     function pushToTerritories(uint8[] memory array_of_territories) external onlyControls {
         for (uint8 i; i < 42; ++i) {
-            s_territories[i] = (Territory_Info(array_of_territories[i], 1));
+            s_territories[i].owner = array_of_territories[i];
+            s_territories[i].troops = 1;
         }
     }
 

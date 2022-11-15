@@ -166,7 +166,7 @@ contract Controls is IControls, VRFConsumerBaseV2 {
     function attack_control(
         uint8 territoryOwned,
         uint8 territoryAttacking,
-        uint256 attackingArmies // could
+        uint16 attackingArmies // could
     ) external override onlyMain {
         require(
             validate_attackable(territoryOwned, territoryAttacking),

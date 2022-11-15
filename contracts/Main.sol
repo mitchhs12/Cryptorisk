@@ -26,7 +26,7 @@ interface IControls {
     function attack_control(
         uint8 territoryOwned,
         uint8 territoryAttacking,
-        uint256 troopQuantity
+        uint16 troopQuantity
     ) external;
 
     function fortify_control(
@@ -262,7 +262,7 @@ contract Main is VRFConsumerBaseV2, AutomationCompatibleInterface {
             }
         }
         IControls(controls_address).push_to_territories(territoriesArrayForData);
-        // assignTroops(territories, territoriesAssigned);
+        assignTroops(territories, territoriesAssigned);
     }
 
     function assignTroops(uint256[] memory troops, uint256[4] memory territoriesAssigned) private {
@@ -329,7 +329,7 @@ contract Main is VRFConsumerBaseV2, AutomationCompatibleInterface {
     function attack(
         uint8 useThisTerritory,
         uint8 toAttackThisTerritory,
-        uint256 withTroopQuantity
+        uint16 withTroopQuantity
     ) public onlyPlayer {
         require(IControls(controls_address).getAttackStatus() == false);
         require(s_gameState == GameState.ATTACK, "It is currently not attack phase!");
