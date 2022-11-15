@@ -13,7 +13,7 @@ import "hardhat/console.sol";
 interface IControls {
     function set_players(address payable[] memory) external;
 
-    function push_to_territories(uint256 territory, uint8 playerAwarded) external;
+    function push_to_territories(uint8[] memory territories) external;
 
     function get_territory_owner(uint256) external returns (uint256);
 
@@ -170,14 +170,14 @@ contract Main is VRFConsumerBaseV2, AutomationCompatibleInterface {
     }
 
     function randomWordsArray() private {
-        uint256[] memory troops = new uint256[](42);
+        uint256[] memory territories = new uint256[](42);
         uint256 randomLength = numDigits(randomWord);
         uint256 num;
         uint256 index;
         uint256 i;
         while (i < 42) {
             num = ((randomWord / (10**index)) % 10) + ((randomWord / (10**(index + 1))) % 10) * 10; // cheaper by 4k gas
-            troops[i] = num;
+            territories[i] = num;
             ++i;
             if (randomLength > 3) {
                 if (index == randomLength - 2) {
@@ -188,7 +188,7 @@ contract Main is VRFConsumerBaseV2, AutomationCompatibleInterface {
 
             ++index;
         }
-        assignTerritory(troops);
+        assignTerritory(territories);
     }
 
     function checkUpkeep(
@@ -240,6 +240,7 @@ contract Main is VRFConsumerBaseV2, AutomationCompatibleInterface {
      */
 
     function assignTerritory(uint256[] memory territories) private {
+        uint8[] memory territoriesArrayForData = new uint8[](42);
         uint256[4] memory territoriesAssigned;
         uint8[4] memory playerSelection = [0, 1, 2, 3];
         uint8 territoryCap = 10; // Initial cap is 10, moves up to 11 after two players assigned 10.
@@ -249,7 +250,7 @@ contract Main is VRFConsumerBaseV2, AutomationCompatibleInterface {
         for (uint256 i; i < 42; ++i) {
             indexAssignedTerritory = territories[i] % remainingPlayers; // Calculates which index from playerSelection will receive the territory
             playerAwarded = playerSelection[indexAssignedTerritory]; // Player to be awarded territory
-            IControls(controls_address).push_to_territories(i, playerAwarded);
+            territoriesArrayForData[i] = playerAwarded;
             ++territoriesAssigned[playerAwarded];
             if (territoriesAssigned[playerAwarded] == territoryCap) {
                 delete playerSelection[indexAssignedTerritory]; // Removes awarded player from the array upon hitting territory cap.
@@ -260,7 +261,8 @@ contract Main is VRFConsumerBaseV2, AutomationCompatibleInterface {
                 }
             }
         }
-        assignTroops(territories, territoriesAssigned);
+        IControls(controls_address).push_to_territories(territoriesArrayForData);
+        // assignTroops(territories, territoriesAssigned);
     }
 
     function assignTroops(uint256[] memory troops, uint256[4] memory territoriesAssigned) private {

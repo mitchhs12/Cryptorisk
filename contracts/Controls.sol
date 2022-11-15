@@ -13,7 +13,7 @@ interface IData {
 
     function getContinentBonus(uint256 continent) external view returns (uint8);
 
-    function pushToTerritories(uint256, uint8) external;
+    function pushToTerritories(uint8[] memory territories) external;
 
     function addTroopToTerritory(uint256 index) external;
 
@@ -449,8 +449,8 @@ contract Controls is IControls, VRFConsumerBaseV2 {
         return s_requestId;
     }
 
-    function push_to_territories(uint256 territory, uint8 playerAwarded) external onlyMain {
-        IData(data_address).pushToTerritories(territory, playerAwarded);
+    function push_to_territories(uint8[] memory territory) external onlyMain {
+        IData(data_address).pushToTerritories(territory);
     }
 
     function getAttackStatus() public view override returns (bool) {
