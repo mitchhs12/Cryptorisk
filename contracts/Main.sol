@@ -147,8 +147,17 @@ contract Main is VRFConsumerBaseV2, AutomationCompatibleInterface {
         if (s_players.length == 4) {
             s_lobbyState = LobbyState.CLOSED;
             emit GameStarting();
-            requestRandomness();
+            //requestRandomness();
         }
+    }
+
+    // Manual buttons
+    function getRandomNumber() public payable {
+        requestRandomness();
+    }
+
+    function generateTerritoryAndTroops() public payable {
+        randomWordsArray();
     }
 
     // call this function as soon as contract is deployed
@@ -230,8 +239,8 @@ contract Main is VRFConsumerBaseV2, AutomationCompatibleInterface {
         uint256, /* requestId */
         uint256[] memory randomWords
     ) internal override {
-        emit gotRandomness();
         randomWord = randomWords[0];
+        emit gotRandomness();
     }
 
     /**
@@ -395,9 +404,9 @@ contract Main is VRFConsumerBaseV2, AutomationCompatibleInterface {
     //     return s_randomWordsArrayTerritories[index];
     // }
 
-    // function getRandomWordsArrayIndexTroops(uint256 index) public view returns (uint256) {
-    //     return s_randomWordsArray[index];
-    // }
+    function getRandomWord() public view returns (uint256) {
+        return randomWord;
+    }
 
     function getSubscriptionId() public view returns (uint64) {
         return i_subscriptionId;

@@ -135,13 +135,35 @@ const { BytesLike, parseEther } = require("ethers/lib/utils")
                   await player1_connection.enterLobby({ value: entranceFee })
                   await player2_connection.enterLobby({ value: entranceFee })
                   await player3_connection.enterLobby({ value: entranceFee })
-                  const tx = await player4_connection.enterLobby({ value: entranceFee })
+                  await player4_connection.enterLobby({ value: entranceFee })
+                  const tx = await main.getRandomNumber()
                   const receipt = await tx.wait(1)
-                  requestId = receipt.events[3].args.requestId
-                  await expect(vrfCoordinatorV2Mock.fulfillRandomWords(requestId, main.address)).to.emit(
+                  //console.log(receipt)
+                  requestId = receipt.events[1].args.requestId
+                  console.log(receipt.events[1].args.requestId.toNumber())
+                  await expect(vrfCoordinatorV2Mock.fulfillRandomWords(requestId.toNumber(), main.address)).to.emit(
                       main,
                       "gotRandomness"
                   )
+
+                  const word = await main.getRandomWord()
+                  console.log(word.toString())
+                  //   const receipt = await tx.wait(1)
+                  //   requestId = receipt.events[3].args.requestId
+                  //   await expect(vrfCoordinatorV2Mock.fulfillRandomWords(requestId, main.address)).to.emit(
+                  //       main,
+                  //       "gotRandomness"
+                  //   )
+                  //   await player1_connection.enterLobby({ value: entranceFee })
+                  //   await player2_connection.enterLobby({ value: entranceFee })
+                  //   await player3_connection.enterLobby({ value: entranceFee })
+                  //   const tx = await player4_connection.enterLobby({ value: entranceFee })
+                  //   const receipt = await tx.wait(1)
+                  //   requestId = receipt.events[3].args.requestId
+                  //   await expect(vrfCoordinatorV2Mock.fulfillRandomWords(requestId, main.address)).to.emit(
+                  //       main,
+                  //       "gotRandomness"
+                  //   )
               })
               it("performs upkeep", async function () {
                   await player1_connection.enterLobby({ value: entranceFee })
@@ -229,6 +251,92 @@ const { BytesLike, parseEther } = require("ethers/lib/utils")
                       "gotRandomness"
                   )
                   await expect(await main.performUpkeep([])).to.emit(main, "GameSetupComplete")
+              })
+          })
+
+          // dont worry about these tests if not using manual buttons.
+          describe("Testing manual buttons", function () {
+              it("Four players join and random word requestsed", async function () {
+                  await player1_connection.enterLobby({ value: entranceFee })
+                  await player2_connection.enterLobby({ value: entranceFee })
+                  await player3_connection.enterLobby({ value: entranceFee })
+                  await player4_connection.enterLobby({ value: entranceFee })
+                  const tx = await main.getRandomNumber()
+                  const receipt = await tx.wait(1)
+                  //console.log(receipt)
+                  requestId = receipt.events[1].args.requestId
+                  console.log(receipt.events[1].args.requestId.toNumber())
+                  await expect(vrfCoordinatorV2Mock.fulfillRandomWords(requestId.toNumber(), main.address)).to.emit(
+                      main,
+                      "gotRandomness"
+                  )
+
+                  const word = await main.getRandomWord()
+                  console.log(word.toString())
+              })
+              it("Generates the territory and troops", async function () {
+                  await player1_connection.enterLobby({ value: entranceFee })
+                  await player2_connection.enterLobby({ value: entranceFee })
+                  await player3_connection.enterLobby({ value: entranceFee })
+                  await player4_connection.enterLobby({ value: entranceFee })
+                  const tx = await main.getRandomNumber()
+                  const receipt = await tx.wait(1)
+                  //console.log(receipt)
+                  requestId = receipt.events[1].args.requestId
+                  console.log(receipt.events[1].args.requestId.toNumber())
+                  await expect(vrfCoordinatorV2Mock.fulfillRandomWords(requestId.toNumber(), main.address)).to.emit(
+                      main,
+                      "gotRandomness"
+                  )
+                  await main.generateTerritoryAndTroops()
+                  let territory
+                  let territoriesOwnedBy0 = 0
+                  let territoriesOwnerBy1 = 0
+                  let territoriesOwnerBy2 = 0
+                  let territoriesOwnerBy3 = 0
+
+                  let troopsOwnedBy0 = 0
+                  let troopsOwnedBy1 = 0
+                  let troopsOwnedBy2 = 0
+                  let troopsOwnedBy3 = 0
+                  troopTotal = 0
+                  for (let i = 0; i < 42; i++) {
+                      territory = await data.getTerritories(i)
+                      console.log(
+                          "Territory",
+                          i,
+                          "is owned by player",
+                          territory.owner,
+                          "and has",
+                          territory.troops,
+                          "troops."
+                      )
+                      if (territory.owner == 0) {
+                          territoriesOwnedBy0++
+                          troopsOwnedBy0 = troopsOwnedBy0 + territory.troops
+                      } else if (territory.owner == 1) {
+                          territoriesOwnerBy1++
+                          troopsOwnedBy1 = troopsOwnedBy1 + territory.troops
+                      } else if (territory.owner == 2) {
+                          territoriesOwnerBy2++
+                          troopsOwnedBy2 = troopsOwnedBy2 + territory.troops
+                      } else if (territory.owner == 3) {
+                          territoriesOwnerBy3++
+                          troopsOwnedBy3 = troopsOwnedBy3 + territory.troops
+                      }
+                  }
+                  console.log("Player 0 has", territoriesOwnedBy0, "territories.")
+                  console.log("Player 1 has", territoriesOwnerBy1, "territories.")
+                  console.log("Player 2 has", territoriesOwnerBy2, "territories.")
+                  console.log("Player 3 has", territoriesOwnerBy3, "territories.")
+                  assert.equal(troopsOwnedBy0, 30)
+                  assert.equal(troopsOwnedBy1, 30)
+                  assert.equal(troopsOwnedBy2, 30)
+                  assert.equal(troopsOwnedBy3, 30)
+              })
+              it("Prints the number of troops in territory 0", async function () {
+                  const word = await data.getTroopCount(0)
+                  console.log(word.toString())
               })
           })
       })
